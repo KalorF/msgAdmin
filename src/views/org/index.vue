@@ -210,7 +210,11 @@ const cancelPool = () => {
   currentStaff.value = null;
 };
 
-const handleAlloc = (item: any) => {
+const handleAlloc = async (item: any) => {
+  const res = await staffConfigGet(item.id);
+  if (res.data) {
+    poolSelect.value = res.data.condition_pool_id;
+  }
   currentStaff.value = item;
   poolVisible.value = true;
 };
