@@ -49,7 +49,7 @@ export const staffConfigDel = (staff_id: string) => {
 }
 
 export const staffConfigGet = (staff_id: string) => {
-  return http.request<any>('post', `/api/customer/staff_allocation_config/get/${staff_id}`, { })
+  return http.request<any>('get', `/api/customer/staff_allocation_config/get/${staff_id}`, { })
 }
 
 export const staffConfigUpsert = (data: any) => {
