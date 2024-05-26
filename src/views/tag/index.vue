@@ -9,7 +9,6 @@ import {
   updateGroupTag,
   updateTag
 } from "@/api/tag";
-import { postOss } from "@/api/oss";
 import { ref, reactive, onMounted, nextTick, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
@@ -39,6 +38,7 @@ const formInline = reactive({
 const tagList = ref([]);
 const dialogVisiable = ref(false);
 const courseName = ref("");
+const courseRadio = ref(0);
 const isEdit = ref(false);
 const curId = ref("");
 const activeItem = ref();
@@ -54,25 +54,29 @@ const getData = () => {
 };
 
 const getList = () => {
-  return getAllTags().then(res => {
-    if (res.code === 200 && res.data && res.data.length) {
-      // list.value = res.data;
-      allList.value = res.data;
-    } else {
-      allList.value = [];
-    }
-    if (allList.value.length) {
-      list.value =
-        allList.value.filter(item => item.group_id === activeItem.value.id) ||
-        [];
-    }
-  });
+  const item = tagList.value.find(i => i.id === activeItem.value.id);
+  activeItem.value = item;
+  list.value = item.tag_list;
+  // return getAllTags().then(res => {
+  //   if (res.code === 200 && res.data && res.data.length) {
+  //     // list.value = res.data;
+  //     allList.value = res.data;
+  //   } else {
+  //     allList.value = [];
+  //   }
+  //   if (allList.value.length) {
+  //     list.value =
+  //       allList.value.filter(item => item.group_id === activeItem.value.id) ||
+  //       [];
+  //   }
+  // });
 };
 
 const handleCancelCourse = () => {
   setTimeout(() => {
     dialogVisiable.value = false;
     courseName.value = "";
+    courseRadio.value = 0;
     isEdit.value = false;
   }, 34);
 };
@@ -83,8 +87,12 @@ const confirmCreate = () => {
   } else {
     const func = isEdit.value ? updateGroupTag : createGroupTag;
     const data = isEdit.value
-      ? { name: courseName.value, id: curId.value }
-      : { name: courseName.value };
+      ? {
+          name: courseName.value,
+          tag_group_type: courseRadio.value,
+          id: curId.value
+        }
+      : { name: courseName.value, tag_group_type: courseRadio.value };
     func({ ...data })
       .then(res => {
         if (res.code === 200) {
@@ -96,7 +104,7 @@ const confirmCreate = () => {
         }
       })
       .catch(err => {
-        ElMessage.error(isEdit.value ? "修改失败" : "创建失败");
+        ElMessage.error(err?.response?.data?.msg);
       });
   }
 };
@@ -105,6 +113,7 @@ const handleEdit = (item: any) => {
   isEdit.value = true;
   curId.value = item.id;
   courseName.value = item.name;
+  courseRadio.value = item.tag_group_type;
   dialogVisiable.value = true;
 };
 
@@ -147,9 +156,10 @@ const handleDelCourse = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      delTag(id).then(res => {
+      delTag(id).then(async res => {
         if (res.code === 200) {
           ElMessage.success("删除成功");
+          await getData();
           getList();
         } else {
           ElMessage.error("删除失败");
@@ -169,6 +179,7 @@ watch(
     if (activeItem.value) {
       const item = tagList.value.find(i => i.id === activeItem.value.id);
       activeItem.value = item;
+      list.value = item.tag_list;
     }
   },
   { deep: true }
@@ -178,7 +189,9 @@ watch(
   activeItem,
   () => {
     if (activeItem.value.id) {
-      getList();
+      const item = tagList.value.find(i => i.id === activeItem.value.id);
+      activeItem.value = item;
+      list.value = item.tag_list;
     }
   },
   { deep: true }
@@ -243,10 +256,11 @@ const handleUpload = async () => {
     ? Object.assign(baseData, { id: curCourseInfo.value.id })
     : baseData;
   func({ ...postData })
-    .then(res => {
+    .then(async res => {
       if (res.code === 200) {
         ElMessage.success(uploadEdit.value ? "修改成功" : "创建成功");
         handleCloseUpload();
+        await getData();
         getList();
       }
     })
@@ -426,6 +440,12 @@ const handleUpload = async () => {
             placeholder="请输入分类名称"
             clearable
           />
+        </el-form-item>
+        <el-form-item label="标签选项选择" class="flex items-center">
+          <el-radio-group v-model="courseRadio">
+            <el-radio :value="0" size="large">单选</el-radio>
+            <el-radio :value="1" size="large">多选</el-radio>
+          </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>

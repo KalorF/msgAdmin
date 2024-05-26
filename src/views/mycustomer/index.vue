@@ -18,6 +18,12 @@ import {
   delVisit
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag } from "@/api/tag";
+import {
+  checkAllocByStaff,
+  allocStaffREason,
+  allocrecord,
+  lastAllocRecord
+} from "@/api/alloc";
 import { createCall, getCallListByCustomer } from "@/api/call";
 import { message } from "@/utils/message";
 import { ref, reactive } from "vue";
@@ -26,6 +32,10 @@ import { onMounted, nextTick, onUnmounted } from "vue";
 import { ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 import { useUserStoreHook } from "@/store/modules/user";
+import Recorder from "recorder-core";
+import "recorder-core/src/engine/mp3";
+import "recorder-core/src/engine/mp3-engine";
+import { localForage } from "@/utils/localforage";
 
 defineOptions({
   name: "customerlist2"
@@ -39,6 +49,30 @@ const formInline = reactive({
   phone: "",
   date: ""
 });
+
+let recorderContext: any = null;
+
+const initCorder = () => {
+  recorderContext = Recorder({
+    type: "mp3", //录音格式，可以换成wav等其他格式
+    sampleRate: 16000, //录音的采样率，越大细节越丰富越细腻
+    bitRate: 16 //录音的比特率，越大音质越好
+  });
+};
+
+const getAllocData = () => {
+  const staff_id = userStore.userInfo.id;
+  lastAllocRecord(staff_id).then(res => {
+    if (res.code === 200) {
+      console.log(res.data);
+    }
+  });
+  allocrecord({ staff_id, limit: 10, offset: 0 }).then(res => {
+    if (res.code === 0) {
+      console.log(res.data);
+    }
+  });
+};
 
 const onSubmit = async () => {
   if (valueGroup.value.length) {
@@ -423,28 +457,83 @@ const callback = () => {
   });
 };
 
+const audioSrc = ref("");
+let tempBlob;
+
+const getCorder = () => {
+  recorderContext.stop(
+    async (blob, duration) => {
+      const localUrl = (window.URL || webkitURL).createObjectURL(blob);
+      audioSrc.value = localUrl;
+      tempBlob = blob;
+      await localForage().setItem("audiobool", tempBlob);
+      recorderContext.close();
+    },
+    err => {
+      alert(err);
+      console.error("结束录音出错：" + err);
+      recorderContext.close(); //关闭录音，释放录音资源，当然可以不释放，后面可以连续调用start
+    }
+  );
+};
+
+const checkAndroid = () => {
+  const u = navigator.userAgent;
+  const isAndroid = u.indexOf("Android") > -1 || u.indexOf("Adr") > -1;
+  return isAndroid;
+};
+
+window.addEventListener("beforeunload", async () => {
+  if (tempBlob) {
+    await localForage().setItem("audiobool", tempBlob);
+  }
+});
+
 const visiableChange = () => {
   if (document.visibilityState === "hidden" && startCall.value) {
+    recorderContext.start();
     startTime.value = Date.now();
   }
   if (document.visibilityState === "visible" && startTime.value) {
     callTime.value = Date.now() - startTime.value;
+    // 判断是否是androids
+    if (checkAndroid()) {
+      getCorder();
+    }
+    // alert("通话完成");
     callback();
     startTime.value = 0;
     startCall.value = false;
   }
 };
 
+let isOpen = false;
+
 const handleCall = (item: any) => {
-  if (window.innerWidth > 766) {
-    message("请在移动端浏览器打开进行电话拨打");
-    return;
+  // if (window.innerWidth > 766) {
+  //   message("请在移动端浏览器打开进行电话拨打");
+  //   return;
+  // }
+  if (checkAndroid()) {
+    recorderContext.open(
+      () => {
+        isOpen = true;
+      },
+      () => {
+        isOpen = false;
+        console.log("权限未打开");
+      }
+    );
   }
+
   startCall.value = true;
+  // if (isOpen) {
+  // startCall.value = true;
   currentCustomerInfo.value = item;
   const a = document.createElement("a");
   a.href = `tel:${item.phone}`;
   a.click();
+  // }
 };
 
 const callialogVisiable = ref(false);
@@ -514,20 +603,39 @@ const handleCurrentChange3 = (value: number) => {
   getVisit();
 };
 
+const handleGetCustomer = async () => {
+  const staff_id = userStore.userInfo.id;
+  const check = await checkAllocByStaff(staff_id);
+  if (check.data.ok) {
+    const res = await allocStaffREason(staff_id);
+    if (res.code === 200) {
+      getAllocData();
+    }
+  }
+};
+
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", visiableChange);
 });
 
-onMounted(() => {
+onMounted(async () => {
+  initCorder();
   getData();
   getTagOptions();
+  const url = await (localForage().getItem("audiobool") as any);
+  if (url) {
+    audioSrc.value = (window.URL || webkitURL).createObjectURL(url);
+  }
   document.addEventListener("visibilitychange", visiableChange);
 });
 </script>
 
 <template>
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)]">
-    <el-button type="primary" round class="w-40 mb-4">领取客户</el-button>
+    <!-- <audio controls :src="audioSrc"></audio> -->
+    <el-button type="primary" round class="w-40 mb-4" @click="handleGetCustomer"
+      >领取客户</el-button
+    >
     <el-form :inline="true" :model="formInline" class="demo-form-inline">
       <el-form-item label="客户名称">
         <el-input

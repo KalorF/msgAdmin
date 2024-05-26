@@ -83,3 +83,28 @@ export const visitListByCustomer = (data: any) => {
 export const visitUpdate = (data: any) => {
   return http.request<any>('post', `/api/customer/visit/update/${data.id}`, { data })
 }
+
+export const customerBatchCreate = (data: any) => {
+  return http.request<any>('post', '/api/customer/batch/create', { data });
+}
+
+export const operateCreate = (data: any) => {
+  return http.request<any>('post', '/api/customer/operator', { data });
+}
+
+export const getOperateByCustomerId = (customer_id: string) => {
+  return http.request<any>('get', `/api/customer/operator/customer/${customer_id}`)
+}
+
+export const getOperateById = (data: any) => {
+  return http.request<any>('get', `/api/customer/operator/${data.operator_id}/${data.offset}/${data.limit}`)
+}
+
+
+export const customerQuery = (data: any) => {
+  return http.request<any>('post', `/api/customer/query`, { data });
+}
+
+export const customerUpte = (data: any) => {
+  return http.request<any>('post', '/api/customer/update', { data });
+}

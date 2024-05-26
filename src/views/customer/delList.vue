@@ -6,7 +6,9 @@ import {
   deleteCustomer,
   customerRecover,
   getCustomerByTagId,
-  customerSelect
+  customerSelect,
+  customerQuery,
+  customerUpte
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag } from "@/api/tag";
 import { message } from "@/utils/message";
@@ -73,15 +75,21 @@ const tableData = ref([]);
 const currentInfo = ref();
 
 const getData = () => {
-  customerList({
-    is_deleted: true,
-    limit: pageSize.value,
-    offset: currentPage.value - 1
+  customerQuery({
+    condition: {
+      info: {
+        is_deleted: true
+      }
+    },
+    page: {
+      limit: pageSize.value,
+      offset: currentPage.value - 1
+    }
   })
     .then(res => {
       if (res.code === 200 && res.data) {
         tableData.value = res.data.customers || [];
-        total.value = res.data.total || 0;
+        total.value = res.data.count || 0;
       } else {
         total.value = 0;
         tableData.value = [];
@@ -254,7 +262,7 @@ const handleDel = (item: any) => {
 };
 
 const handlecover = (item: any) => {
-  customerRecover(item.id)
+  customerUpte({ ...item, is_deleted: false })
     .then(res => {
       if (res.code === 200) {
         message("恢复成功", { type: "success" });
@@ -270,12 +278,12 @@ const handlecover = (item: any) => {
 
 onMounted(() => {
   getData();
-  getTagOptions();
+  // getTagOptions();
 });
 </script>
 
 <template>
-  <el-form :inline="true" :model="formInline" class="demo-form-inline">
+  <!-- <el-form :inline="true" :model="formInline" class="demo-form-inline">
     <el-form-item label="客户名称">
       <el-input
         v-model="formInline.user"
@@ -331,7 +339,7 @@ onMounted(() => {
       <el-button type="primary" @click="onSubmit">查询</el-button>
       <el-button type="default" @click="onReset">重置</el-button>
     </el-form-item>
-  </el-form>
+  </el-form> -->
   <el-table
     header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
     :data="tableData"

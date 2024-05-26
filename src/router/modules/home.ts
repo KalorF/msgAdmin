@@ -7,8 +7,8 @@ export default {
   component: Layout,
   redirect: "/welcome",
   meta: {
-    icon: "ep:home-filled",
-    title: "首页",
+    icon: "tabler:clipboard-data",
+    title: "数据概览",
     rank: 0
   },
   children: [
@@ -17,7 +17,7 @@ export default {
       name: "Welcome",
       component: () => import("@/views/welcome/index.vue"),
       meta: {
-        title: "首页",
+        title: "数据概览",
         showLink: VITE_HIDE_HOME === "true" ? false : true
       }
     }
