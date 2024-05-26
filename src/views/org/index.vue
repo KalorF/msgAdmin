@@ -156,7 +156,7 @@ const selOrg = (id: string) => {
 
 const dialogSearch = ref(false);
 const accountName = ref("");
-const searchData = ref(null);
+const searchData = ref<any>();
 
 const handleCancelSearch = () => {
   dialogSearch.value = false;
@@ -170,20 +170,23 @@ const handleSearch = () => {
   } else {
     getAccountByName(accountName.value)
       .then(res => {
-        if (res.code === 200 && res.data.length) {
-          searchData.value = res.data[0];
+        if (res.code === 200 && res.data) {
+          searchData.value = res.data;
         } else {
-          searchData.value = {};
+          searchData.value = null;
         }
       })
       .catch(() => {
-        searchData.value = {};
+        searchData.value = null;
       });
   }
 };
 
 const noSearchData = computed(() => {
-  return searchData.value !== null && !Object.keys(searchData.value).length;
+  return (
+    searchData.value !== null ||
+    (searchData.value && searchData.value.id === "0")
+  );
 });
 
 const addAccount = () => {
@@ -416,7 +419,7 @@ watch(activeOrg, () => {
       </el-form>
       <div class="mt-1">
         <p class="text-zinc-400 text-xs" v-if="noSearchData">未找到用户</p>
-        <div v-if="searchData && Object.keys(searchData).length">
+        <div v-if="searchData && searchData.id !== '0'">
           <div
             class="w-full shadow h-20 border border-slate-100 rounded-md overflow-hidden hover:shadow-md flex"
           >
