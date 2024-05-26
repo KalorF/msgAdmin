@@ -14,19 +14,23 @@ import {
   visitCreate,
   visitUpdate,
   delVisit,
-  recordDel
+  recordDel,
+  customerQuery,
+  customerUpte,
+  customerBatchCreate
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag, customerTagUpsert } from "@/api/tag";
 import { getCallListByCustomer } from "@/api/call";
 import { message } from "@/utils/message";
 import { ref, reactive } from "vue";
 import { Avatar, EditPen } from "@element-plus/icons-vue";
-import { onMounted, nextTick } from "vue";
+import { onMounted, nextTick, computed } from "vue";
 import { ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 import DelList from "./delList.vue";
 import { useUserStoreHook } from "@/store/modules/user";
 import * as XLSX from "xlsx";
+import tagPop from "@/components/tagPop/index.vue";
 
 defineOptions({
   name: "customerlist"
@@ -42,49 +46,93 @@ const formInline = reactive({
 });
 
 const onSubmit = async () => {
-  if (valueGroup.value.length) {
-    const res = await getCustomerByTagId({ tag_id_list: valueGroup.value });
-    tableData.value = res.data || [];
-  } else {
-    pageSize.value = 10;
-    currentPage.value = 1;
-    const res = await customerSelect({
-      customer_condition: {
-        is_deleted: false,
-        name: formInline.user,
-        company: formInline.company,
-        phone: formInline.phone,
-        created_at: +formInline.date / 1000 + ""
-      },
-      limit: pageSize.value,
-      offset: currentPage.value - 1
-    });
-    if (res.code === 200 && res.data) {
-      tableData.value = res.data.customers || [];
-      total.value = res.data.total || 0;
-    } else {
-      total.value = 0;
-      tableData.value = [];
-    }
-  }
+  currentPage.value = 1;
+  pageSize.value = 10;
+  getDataNew();
+  // if (valueGroup.value.length) {
+  //   const res = await getCustomerByTagId({ tag_id_list: valueGroup.value });
+  //   tableData.value = res.data || [];
+  // } else {
+  //   pageSize.value = 10;
+  //   currentPage.value = 1;
+  //   const res = await customerSelect({
+  //     customer_condition: {
+  //       is_deleted: false,
+  //       name: formInline.user,
+  //       company: formInline.company,
+  //       phone: formInline.phone,
+  //       created_at: +formInline.date / 1000
+  //     },
+  //     limit: pageSize.value,
+  //     offset: currentPage.value - 1
+  //   });
+  //   if (res.code === 200 && res.data) {
+  //     tableData.value = res.data.customers || [];
+  //     total.value = res.data.total || 0;
+  //   } else {
+  //     total.value = 0;
+  //     tableData.value = [];
+  //   }
+  // }
 };
 
 const onReset = () => {
   Object.keys(formInline).forEach(key => {
     formInline[key] = "";
   });
+  checkedItems.value = [];
   valueGroup.value = [];
   currentPage.value = 1;
   pageSize.value = 10;
-  getData();
+  getDataNew();
 };
 
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
+const checkedItems = ref([]);
+
+const checkedItemsValue = computed(() => {
+  return checkedItems.value.map(item => item.name).join("、") || [];
+});
 
 const tableData = ref([]);
 const currentInfo = ref();
+
+const getDataNew = () => {
+  customerQuery({
+    condition: {
+      info: {
+        is_deleted: false,
+        name: formInline.user,
+        company: formInline.company,
+        phone: formInline.phone,
+        updated_at: formInline.date ? (formInline.date as any) / 1000 : 0,
+        customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id }))
+      }
+    },
+    page: {
+      limit: pageSize.value,
+      offset: currentPage.value - 1
+    }
+  })
+    .then(res => {
+      if (res.code === 200 && res.data) {
+        tableData.value = res.data.customers || [];
+        if (tableData.value.length) {
+          tableData.value = tableData.value.filter(item => !item.is_deleted);
+        }
+        total.value = res.data.count || 0;
+      } else {
+        total.value = 0;
+        tableData.value = [];
+      }
+    })
+    .catch(() => {
+      total.value = 0;
+      tableData.value = [];
+    });
+};
 
 const getData = () => {
   customerList({
@@ -132,6 +180,7 @@ const getTagOptions = async () => {
   } else {
     options.value = [];
   }
+  console.log(options);
 };
 
 const dialogVisible = ref(false);
@@ -162,7 +211,12 @@ const dialogData = ref({
     type: "text"
   },
   wecom: {
-    label: "wecom",
+    label: "企业微信",
+    value: "",
+    type: "text"
+  },
+  qq: {
+    label: "QQ",
     value: "",
     type: "text"
   },
@@ -431,12 +485,15 @@ const handleConfirm = () => {
     if (isEdit.value) {
       data.id = currentInfo.value.id;
     }
-    const func = isEdit.value ? customerUpdate : createCustomer;
-    func({ ...data })
+    const func = isEdit.value ? customerUpte : customerBatchCreate;
+    const sendData = isEdit.value
+      ? Object.assign(currentInfo.value, { ...data })
+      : { customers: [data], force: true };
+    func(sendData)
       .then(res => {
         if (res.code === 200) {
           message(isEdit.value ? "编辑成功" : "添加成功", { type: "success" });
-          getData();
+          getDataNew();
           handleCancelCrete();
         } else {
           message(isEdit.value ? "编辑失败" : "添加失败", { type: "error" });
@@ -449,18 +506,17 @@ const handleConfirm = () => {
           message(isEdit.value ? "编辑失败" : "添加失败", { type: "error" });
         }
       });
+    // handleCancelCrete();
   }
-
-  handleCancelCrete();
 };
 
 const handleSizeChange = (val: number) => {
   pageSize.value = val;
-  getData();
+  getDataNew();
 };
 const handleCurrentChange = (val: number) => {
   currentPage.value = val;
-  getData();
+  getDataNew();
 };
 
 const handleDel = (item: any) => {
@@ -470,10 +526,11 @@ const handleDel = (item: any) => {
     type: "warning"
   })
     .then(() => {
-      deleteCustomer(item.id).then(res => {
+      const data = Object.assign(item, { is_deleted: true });
+      customerUpte(data).then(res => {
         if (res.code === 200) {
           message("删除成功", { type: "success" });
-          getData();
+          getDataNew();
         } else {
           message("删除失败", { type: "error" });
         }
@@ -486,7 +543,7 @@ const activeValue = ref("has");
 
 const handleChangeActive = () => {
   if (activeValue.value === "has") {
-    getData();
+    getDataNew();
   }
 };
 
@@ -622,12 +679,12 @@ const handleMul = () => {
 };
 
 const handleConfirmImport = () => {
-  batchUpsert({ customer_list: mulTableData.value, force_update: true })
+  customerBatchCreate({ customers: mulTableData.value, force: true })
     .then(res => {
       if (res.code === 200) {
         message("导入成功", { type: "success" });
         handleMulCancel();
-        getData();
+        getDataNew();
       } else {
         message("导入失败", { type: "error" });
       }
@@ -638,31 +695,49 @@ const handleConfirmImport = () => {
 };
 
 const tagDialogVisiable = ref(false);
-const tagGroup = ref([]);
+const tagGroup = ref("");
+const tagGroupCheckitems = ref([]);
 
 const handleTagCancel = () => {
-  tagGroup.value = [];
+  tagGroup.value = "";
+  tagGroupCheckitems.value = [];
   tagDialogVisiable.value = false;
+};
+
+const tagGroupChange = (val: any) => {
+  if (val.length) {
+    tagGroupCheckitems.value = val;
+    tagGroup.value = val.map(i => i.name).join("、");
+  } else {
+    tagGroupCheckitems.value = [];
+    tagGroup.value = "";
+  }
 };
 
 const handleEditTag = (item: any) => {
   currentInfo.value = item;
-  if (item.tags && item.tags.length) {
-    tagGroup.value = item.tags.map(i => i.id);
+  if (item.customer_tag_list && item.customer_tag_list.length) {
+    tagGroupCheckitems.value = item.customer_tag_list.map(i => i.tag);
+    tagGroup.value = tagGroupCheckitems.value.map(i => i.name).join("、");
   }
   tagDialogVisiable.value = true;
 };
 
 const handleConfirmTag = () => {
-  customerTagUpsert({
-    customer_id: currentInfo.value.id,
-    tagIdsList: tagGroup.value
-  })
+  if (tagGroupCheckitems.value.length === 0) {
+    message("请选择标签");
+    return;
+  }
+  const data = Object.assign({}, { ...currentInfo.value });
+  data.customer_tag_list = tagGroupCheckitems.value.map(i => ({
+    tag_id: i.id
+  }));
+  customerUpte(data)
     .then(res => {
       if (res.code === 200) {
         message("设置成功", { type: "success" });
         handleTagCancel();
-        getData();
+        getDataNew();
       } else {
         message("设置失败", { type: "error" });
       }
@@ -730,8 +805,9 @@ const handleCurrentChangeCall = (val: number) => {
 };
 
 onMounted(() => {
-  getData();
-  getTagOptions();
+  // getData();
+  // getTagOptions();
+  getDataNew();
 });
 </script>
 
@@ -803,29 +879,17 @@ onMounted(() => {
             />
           </el-form-item>
           <el-form-item label="标签">
-            <el-select
-              v-model="valueGroup"
-              multiple
-              placeholder="请选择"
-              collapse-tags
-              collapse-tags-tooltip
-              :max-collapse-tags="3"
-              filterable
-              style="width: 240px"
+            <tagPop
+              :checkedItems="checkedItems"
+              @change="value => (checkedItems = value)"
             >
-              <el-option-group
-                v-for="group in options"
-                :key="group.id"
-                :label="group.name"
-              >
-                <el-option
-                  v-for="item in group.children"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id"
-                />
-              </el-option-group>
-            </el-select>
+              <el-input
+                v-model="checkedItemsValue"
+                placeholder="请选择标签"
+                clearable
+                readonly
+              />
+            </tagPop>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSubmit">查询</el-button>
@@ -846,22 +910,6 @@ onMounted(() => {
             >
               <p>地址：{{ props.row.address }}</p>
               <p>工作地址：{{ props.row.working_address }}</p>
-              <div class="flex items-center flex-wrap gap-2 mb-2">
-                <el-icon
-                  @click="handleEditTag(props.row)"
-                  class="!text-zinc-600 hover:!text-zinc-400"
-                  :size="18"
-                  ><EditPen /></el-icon
-                >标签：
-                <div
-                  v-if="props.row.tags"
-                  class="p-1 px-4 rounded-md bg-[#eeeeee] text-[#303841]"
-                  v-for="item in props.row.tags"
-                  :key="item.id"
-                >
-                  {{ item.name }}
-                </div>
-              </div>
             </div>
           </template>
         </el-table-column>
@@ -875,10 +923,31 @@ onMounted(() => {
             </div>
           </template>
         </el-table-column>
+        <el-table-column label="客户标签" width="230">
+          <template #default="props">
+            <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+              <el-icon
+                @click="handleEditTag(props.row)"
+                class="!text-zinc-600 hover:!text-zinc-400"
+                :size="18"
+                ><EditPen
+              /></el-icon>
+              <div
+                v-if="props.row.customer_tag_list"
+                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                v-for="item in props.row.customer_tag_list"
+                :key="item.id"
+              >
+                {{ item.tag.name }}
+              </div>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="phone" width="140" label="手机" />
         <el-table-column prop="company" width="180" label="公司" />
         <el-table-column prop="wechat" label="微信" />
-        <el-table-column prop="wecom" label="wecom" />
+        <el-table-column prop="wecom" label="企业微信" />
+        <el-table-column prop="qq" label="QQ" />
         <el-table-column label="添加时间" width="200" sortable>
           <template #default="props">
             {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
@@ -894,7 +963,7 @@ onMounted(() => {
             <el-button link type="info" @click="handleEdit(props.row)"
               >编辑</el-button
             >
-            <el-button
+            <!-- <el-button
               class="!ml-0"
               link
               type="primary"
@@ -909,7 +978,7 @@ onMounted(() => {
               @click="viewCall(props.row)"
             >
               通话记录
-            </div>
+            </div> -->
             <el-button
               class="!ml-0"
               link
@@ -1108,29 +1177,14 @@ onMounted(() => {
     >
       <el-form inline>
         <el-form-item label="标签">
-          <el-select
-            v-model="tagGroup"
-            multiple
-            placeholder="请选择"
-            collapse-tags
-            collapse-tags-tooltip
-            :max-collapse-tags="3"
-            filterable
-            style="width: 240px"
-          >
-            <el-option-group
-              v-for="group in options"
-              :key="group.id"
-              :label="group.name"
-            >
-              <el-option
-                v-for="item in group.children"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
-              />
-            </el-option-group>
-          </el-select>
+          <tagPop :checkedItems="tagGroupCheckitems" @change="tagGroupChange">
+            <el-input
+              placeholder="请选择标签"
+              v-model="tagGroup"
+              clearable
+              readonly
+            ></el-input>
+          </tagPop>
         </el-form-item>
       </el-form>
       <template #footer>

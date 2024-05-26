@@ -1,7 +1,7 @@
 import { http } from "@/utils/http";
 
 export const allocStaffREason = (id: string) => {
-  return http.request<any>("get", `/api/customer/alloc/${id}`, { });
+  return http.request<any>("get", `/api/customer/allocation_record/alloc/${id}`, { });
 }
 
 export const allocConfig = () => {
@@ -17,7 +17,7 @@ export const allocrecord = (data: any) => {
 }
 
 export const checkAllocByStaff = (id: string) => {
-  return http.request<any>('get', `/api/customer/check_alloc/${id}`)
+  return http.request<any>('get', `/api/customer/allocation_record/check_alloc/${id}`)
 }
 
 export const lastAllocRecord = (id: string) => {
@@ -54,4 +54,32 @@ export const staffConfigGet = (staff_id: string) => {
 
 export const staffConfigUpsert = (data: any) => {
   return http.request<any>('post', `/api/customer/staff_allocation_config/upsert/${data.staff_id}`, { data })
+}
+
+export const getpoolList = () => {
+  return http.request<any>('get', '/api/allocation/pool');
+}
+
+export const poolSet = (data: any) => {
+  return http.request<any>('post', '/api/allocation/pool', { data });
+}
+
+export const poolDelStaff = (data: any) => {
+  return http.request<any>('post', `/api/allocation/pool/staff/batch/delete`, { data })
+}
+
+export const poolSetStaff = (data: any) => {
+  return http.request<any>('post', `/api/allocation/pool/staff/batch/set`, { data })
+}
+
+export const allocSetConfig = (data: any) => {
+  return http.request<any>('post', `/api/allocation/config`, { data })
+}
+
+export const allocConfigCheck = (data: any) => {
+  return http.request<any>('get', `/api/allocation/check`, { params: data })
+}
+
+export const allocConfigAlloc = (data: any) => {
+  return http.request<any>('get', `/api/allocation/alloc`, { params: data })
 }

@@ -11,11 +11,16 @@ import {
   getAccountByName,
   postAccountUpdate
 } from "@/api/account";
-import { poolList, staffConfigGet, staffConfigUpsert } from "@/api/alloc";
+import {
+  poolList,
+  staffConfigGet,
+  staffConfigUpsert,
+  getpoolList,
+  poolSetStaff
+} from "@/api/alloc";
 import { ref, reactive, onMounted, watch, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
-import { nextTick } from "process";
 
 const orgList = ref([]);
 const myorg = ref();
@@ -29,13 +34,23 @@ const pageSize = ref(10);
 const currentPage = ref(1);
 const total = ref(0);
 const pool = ref([]);
+const allStaffList = ref([]);
 
-const getpoolList = () => {
-  poolList()
+const getpoolListPost = () => {
+  getpoolList()
     .then(res => {
       if (res.code === 200) {
-        if (res.data && res.data.pool_list && res.data.pool_list.length) {
-          pool.value = res.data.pool_list.map(item => item.config);
+        if (
+          res.data &&
+          res.data.allocation_pool_list &&
+          res.data.allocation_pool_list.length
+        ) {
+          pool.value = res.data.allocation_pool_list;
+          const list = [];
+          res.data.allocation_pool_list.map(item => {
+            list.push(...item.staff_allocation_list);
+          });
+          allStaffList.value = list;
         } else {
           pool.value = [];
         }
@@ -202,7 +217,7 @@ const handleEditAuth = (item: any) => {
 const poolVisible = ref(false);
 const isPoolEdit = ref(false);
 const currentStaff = ref();
-const poolSelect = ref("");
+const poolSelect = ref();
 
 const cancelPool = () => {
   isPoolEdit.value = false;
@@ -211,9 +226,13 @@ const cancelPool = () => {
 };
 
 const handleAlloc = async (item: any) => {
-  const res = await staffConfigGet(item.id);
-  if (res.data) {
-    poolSelect.value = res.data.condition_pool_id;
+  // const res = await staffConfigGet(item.id);
+  // if (res.data) {
+  //   poolSelect.value = res.data.condition_pool_id;
+  // }
+  const findItem = allStaffList.value.find(i => i.staff_id === item.id);
+  if (findItem) {
+    poolSelect.value = +findItem.allocation_pool_id;
   }
   currentStaff.value = item;
   poolVisible.value = true;
@@ -221,13 +240,15 @@ const handleAlloc = async (item: any) => {
 
 const handlePool = () => {
   // const edit = isPoolEdit.value;
-  staffConfigUpsert({
-    staff_id: currentStaff.value.id,
-    condition_pool_id: poolSelect.value
+  poolSetStaff({
+    staff_id_str_list: [currentStaff.value.id],
+    allocationPoolId: poolSelect.value
   })
     .then(res => {
       if (res.code == 200) {
         ElMessage.success("操作成功");
+        getpoolList();
+        cancelPool();
       } else {
         ElMessage.error("操作失败");
       }
@@ -239,7 +260,7 @@ const handlePool = () => {
 
 onMounted(async () => {
   await getallOrgData();
-  getpoolList();
+  getpoolListPost();
   orgGet().then(res => {
     myorg.value = res.data;
   });

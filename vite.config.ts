@@ -8,10 +8,14 @@ import {
   pathResolve,
   __APP_INFO__
 } from "./build/utils";
-
+import  mkcert from 'vite-plugin-mkcert';
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
     warpperEnv(loadEnv(mode, root));
+  const plugins = getPluginsList(VITE_CDN, VITE_COMPRESSION);
+  if (VITE_PORT) {
+    plugins.push(mkcert());
+  }
   return {
     base: VITE_PUBLIC_PATH,
     root,
@@ -34,9 +38,10 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布
       warmup: {
         clientFiles: ["./index.html", "./src/{views,components}/*"]
-      }
+      },
+      https: { }
     },
-    plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION),
+    plugins: plugins,
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
       include,

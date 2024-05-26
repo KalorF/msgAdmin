@@ -23,3 +23,9 @@ export default defineComponent({
   }
 });
 </script>
+
+<style>
+.el-dialog {
+  border-radius: 10px !important;
+}
+</style>
