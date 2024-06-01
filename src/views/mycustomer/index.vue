@@ -15,20 +15,32 @@ import {
   visitCreate,
   visitListByCustomer,
   visitUpdate,
-  delVisit
+  delVisit,
+  customerQuery,
+  operateCreate
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag } from "@/api/tag";
 import {
   checkAllocByStaff,
   allocStaffREason,
   allocrecord,
-  lastAllocRecord
+  lastAllocRecord,
+  allocConfigAlloc,
+  allocConfigCheck
 } from "@/api/alloc";
 import { createCall, getCallListByCustomer } from "@/api/call";
 import { message } from "@/utils/message";
 import { ref, reactive } from "vue";
-import { Avatar, Cellphone, UserFilled } from "@element-plus/icons-vue";
-import { onMounted, nextTick, onUnmounted } from "vue";
+import {
+  Avatar,
+  Cellphone,
+  UserFilled,
+  Memo,
+  Share,
+  Sort,
+  More
+} from "@element-plus/icons-vue";
+import { onMounted, nextTick, onUnmounted, computed } from "vue";
 import { ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 import { useUserStoreHook } from "@/store/modules/user";
@@ -36,6 +48,10 @@ import Recorder from "recorder-core";
 import "recorder-core/src/engine/mp3";
 import "recorder-core/src/engine/mp3-engine";
 import { localForage } from "@/utils/localforage";
+import { FLOW_TYPE, RECORD_TYPE } from "@/types";
+import tagPop from "@/components/tagPop/index.vue";
+import recrodDialog from "@/components/recrodDialog/index.vue";
+import orgDialog from "@/components/orgDialog/index.vue";
 
 defineOptions({
   name: "customerlist2"
@@ -75,37 +91,41 @@ const getAllocData = () => {
 };
 
 const onSubmit = async () => {
-  if (valueGroup.value.length) {
-    const res = await getCustomerByTagId({ tag_id_list: valueGroup.value });
-    tableData.value = res.data || [];
-  } else {
-    pageSize.value = 10;
-    currentPage.value = 1;
-    const res = await customerSelect({
-      customer_condition: {
-        is_deleted: true,
-        name: formInline.user,
-        company: formInline.company,
-        phone: formInline.phone,
-        created_at: +formInline.date / 1000 + ""
-      },
-      limit: pageSize.value,
-      offset: currentPage.value - 1
-    });
-    if (res.code === 200 && res.data) {
-      tableData.value = res.data.customers || [];
-      total.value = res.data.total || 0;
-    } else {
-      total.value = 0;
-      tableData.value = [];
-    }
-  }
+  currentPage.value = 1;
+  pageSize.value = 10;
+  getData();
+  // if (valueGroup.value.length) {
+  //   const res = await getCustomerByTagId({ tag_id_list: valueGroup.value });
+  //   tableData.value = res.data || [];
+  // } else {
+  //   pageSize.value = 10;
+  //   currentPage.value = 1;
+  //   const res = await customerSelect({
+  //     customer_condition: {
+  //       is_deleted: true,
+  //       name: formInline.user,
+  //       company: formInline.company,
+  //       phone: formInline.phone,
+  //       created_at: +formInline.date / 1000 + ""
+  //     },
+  //     limit: pageSize.value,
+  //     offset: currentPage.value - 1
+  //   });
+  //   if (res.code === 200 && res.data) {
+  //     tableData.value = res.data.customers || [];
+  //     total.value = res.data.total || 0;
+  //   } else {
+  //     total.value = 0;
+  //     tableData.value = [];
+  //   }
+  // }
 };
 
 const onReset = () => {
   Object.keys(formInline).forEach(key => {
     formInline[key] = "";
   });
+  checkedItems.value = [];
   valueGroup.value = [];
   currentPage.value = 1;
   pageSize.value = 10;
@@ -115,6 +135,11 @@ const onReset = () => {
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
+const checkedItems = ref([]);
+
+const checkedItemsValue = computed(() => {
+  return checkedItems.value.map(item => item.name).join("、") || [];
+});
 
 const tableData = ref([]);
 const currentInfo = ref();
@@ -158,15 +183,32 @@ const getVisit = () => {
 };
 
 const getData = () => {
-  customerList({
-    is_deleted: false,
-    limit: pageSize.value,
-    offset: currentPage.value - 1
+  customerQuery({
+    allocation: {
+      staff_id: userStore.userInfo.id
+    },
+    condition: {
+      info: {
+        is_deleted: false,
+        name: formInline.user,
+        company: formInline.company,
+        phone: formInline.phone,
+        updated_at: formInline.date ? (formInline.date as any) / 1000 : 0,
+        customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id }))
+      }
+    },
+    page: {
+      limit: pageSize.value,
+      offset: currentPage.value - 1
+    }
   })
     .then(res => {
       if (res.code === 200 && res.data) {
         tableData.value = res.data.customers || [];
-        total.value = res.data.total || 0;
+        if (tableData.value.length) {
+          tableData.value = tableData.value.filter(item => !item.is_deleted);
+        }
+        total.value = res.data.count || 0;
       } else {
         total.value = 0;
         tableData.value = [];
@@ -448,13 +490,24 @@ const callTime = ref(0);
 const startCall = ref(false);
 
 const callback = () => {
-  createCall({
-    call_long: callTime.value,
+  operateCreate({
+    call_duration: callTime.value,
     call_at: Math.round(startTime.value / 1000),
-    call_content: "1",
+    call_audio_url: "",
+    content: "",
+    customer_id: currentCustomerInfo.value.id,
     staff_id: userStore.userInfo.id,
-    customer_id: currentCustomerInfo.value.id
+    flow_type: FLOW_TYPE.RUKU,
+    record_type: RECORD_TYPE.CALL_PHONE,
+    progress_id: currentCustomerInfo.value.progress_id
   });
+  // createCall({
+  //   call_long: callTime.value,
+  //   call_at: Math.round(startTime.value / 1000),
+  //   call_content: "1",
+  //   staff_id: userStore.userInfo.id,
+  //   customer_id: currentCustomerInfo.value.id
+  // });
 };
 
 const audioSrc = ref("");
@@ -517,6 +570,7 @@ const handleCall = (item: any) => {
   if (checkAndroid()) {
     recorderContext.open(
       () => {
+        recorderContext.start();
         isOpen = true;
       },
       () => {
@@ -605,13 +659,33 @@ const handleCurrentChange3 = (value: number) => {
 
 const handleGetCustomer = async () => {
   const staff_id = userStore.userInfo.id;
-  const check = await checkAllocByStaff(staff_id);
-  if (check.data.ok) {
-    const res = await allocStaffREason(staff_id);
+  const check = await allocConfigCheck({ staff_id });
+  if (check.data.can_alloc) {
+    const res = await allocConfigAlloc({ staff_id });
     if (res.code === 200) {
-      getAllocData();
+      getData();
     }
   }
+};
+
+const recordDialog = ref(false);
+const orgDialogShow = ref(false);
+const orgTitle = ref("");
+
+const handleTran = (item: any) => {
+  currentCustomerInfo.value = item;
+  orgDialogShow.value = true;
+  orgTitle.value = "转让客户";
+};
+const handleShare = (item: any) => {
+  currentCustomerInfo.value = item;
+  orgDialogShow.value = true;
+  orgTitle.value = "分享客户";
+};
+
+const handleFlowDetail = (item: any) => {
+  currentCustomerInfo.value = item;
+  recordDialog.value = true;
 };
 
 onUnmounted(() => {
@@ -621,7 +695,7 @@ onUnmounted(() => {
 onMounted(async () => {
   initCorder();
   getData();
-  getTagOptions();
+  // getTagOptions();
   const url = await (localForage().getItem("audiobool") as any);
   if (url) {
     audioSrc.value = (window.URL || webkitURL).createObjectURL(url);
@@ -633,6 +707,7 @@ onMounted(async () => {
 <template>
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)]">
     <!-- <audio controls :src="audioSrc"></audio> -->
+    <!-- <input type="file" accept="audio/*" capture="microphone" /> -->
     <el-button type="primary" round class="w-40 mb-4" @click="handleGetCustomer"
       >领取客户</el-button
     >
@@ -668,29 +743,17 @@ onMounted(async () => {
         />
       </el-form-item>
       <el-form-item label="标签">
-        <el-select
-          v-model="valueGroup"
-          multiple
-          placeholder="请选择"
-          collapse-tags
-          collapse-tags-tooltip
-          :max-collapse-tags="3"
-          filterable
-          style="width: 240px"
+        <tagPop
+          :checkedItems="checkedItems"
+          @change="value => (checkedItems = value)"
         >
-          <el-option-group
-            v-for="group in options"
-            :key="group.id"
-            :label="group.name"
-          >
-            <el-option
-              v-for="item in group.children"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id"
-            />
-          </el-option-group>
-        </el-select>
+          <el-input
+            v-model="checkedItemsValue"
+            placeholder="请选择标签"
+            clearable
+            readonly
+          />
+        </tagPop>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onSubmit">查询</el-button>
@@ -712,16 +775,16 @@ onMounted(async () => {
               <p>地址：{{ props.row.address }}</p>
               <p>工作地址：{{ props.row.working_address }}</p>
               <div
-                v-if="props.row.tags"
+                v-if="props.row.customer_tag_list"
                 class="flex items-center flex-wrap gap-2 mb-2"
               >
                 标签：
                 <div
                   class="p-1 px-4 rounded-md bg-[#eeeeee] text-[#303841]"
-                  v-for="item in props.row.tags"
+                  v-for="item in props.row.customer_tag_list"
                   :key="item.id"
                 >
-                  {{ item.name }}
+                  {{ item.tag.name }}
                 </div>
               </div>
             </div>
@@ -752,7 +815,7 @@ onMounted(async () => {
       <el-table-column prop="company" label="公司" />
       <el-table-column prop="wechat" label="微信" />
       <el-table-column prop="wecom" label="wecom" />
-      <el-table-column label="通话记录">
+      <!-- <el-table-column label="通话记录">
         <template #default="props">
           <div
             class="text-cyan-500 hover:opacity-60 cursor-default"
@@ -761,15 +824,35 @@ onMounted(async () => {
             查看
           </div>
         </template>
-      </el-table-column>
+      </el-table-column> -->
       <el-table-column label="添加时间" sortable>
         <template #default="props">
           {{ dayjs(props.row.updated_at * 1000).format("YYYY-MM-DD HH:mm") }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" fixed="right" width="150">
-        <template #default="props">
-          <div class="flex flex-wrap items-start">
+      <el-table-column label="操作" fixed="right" width="80" #default="props">
+        <el-dropdown trigger="click">
+          <el-icon :size="20"><More /></el-icon>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item :icon="Cellphone" @click="handleCall(props.row)"
+                >拨打电话</el-dropdown-item
+              >
+              <el-dropdown-item
+                :icon="Memo"
+                @click="handleFlowDetail(props.row)"
+                >操作记录</el-dropdown-item
+              >
+              <el-dropdown-item :icon="Sort" @click="handleTran(props.row)"
+                >转让客户</el-dropdown-item
+              >
+              <el-dropdown-item :icon="Share" @click="handleShare(props.row)"
+                >分享客户</el-dropdown-item
+              >
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <!-- <div class="flex flex-wrap items-start">
             <el-button link type="success" @click="handleCall(props.row)"
               >拨打电话</el-button
             >
@@ -783,8 +866,7 @@ onMounted(async () => {
             <el-button link class="!ml-0" @click="handleEditVisit2(props.row)"
               >访客记录</el-button
             >
-          </div>
-        </template>
+          </div> -->
       </el-table-column>
     </el-table>
     <div class="mt-4 flex justify-end">
@@ -976,6 +1058,18 @@ onMounted(async () => {
         @current-change="handleCurrentChangeCall"
       />
     </el-dialog>
+
+    <recrodDialog
+      :show="recordDialog"
+      :info="currentCustomerInfo"
+      @close="recordDialog = false"
+    />
+    <orgDialog
+      :show="orgDialogShow"
+      :info="currentCustomerInfo"
+      @close="orgDialogShow = false"
+      :title="orgTitle"
+    />
   </div>
 </template>
 

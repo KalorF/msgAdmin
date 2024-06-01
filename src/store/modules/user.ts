@@ -21,7 +21,7 @@ export const useUserStore = defineStore({
     isRemembered: false,
     // 登录页的免登录存储几天，默认7天
     loginDay: 7,
-    userInfo: window.localStorage.getItem('_userinfo') || null,
+    userInfo: JSON.parse(window.localStorage.getItem('_userinfo') || '{}') || null,
   }),
   actions: {
     /** 存储用户名 */

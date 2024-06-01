@@ -23,7 +23,16 @@ import { getAllTags, getAllGroupTag, customerTagUpsert } from "@/api/tag";
 import { getCallListByCustomer } from "@/api/call";
 import { message } from "@/utils/message";
 import { ref, reactive } from "vue";
-import { Avatar, EditPen } from "@element-plus/icons-vue";
+import {
+  Avatar,
+  EditPen,
+  More,
+  Edit,
+  Delete,
+  Memo,
+  Share,
+  Sort
+} from "@element-plus/icons-vue";
 import { onMounted, nextTick, computed } from "vue";
 import { ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
@@ -31,6 +40,8 @@ import DelList from "./delList.vue";
 import { useUserStoreHook } from "@/store/modules/user";
 import * as XLSX from "xlsx";
 import tagPop from "@/components/tagPop/index.vue";
+import recrodDialog from "@/components/recrodDialog/index.vue";
+import orgDialog from "@/components/orgDialog/index.vue";
 
 defineOptions({
   name: "customerlist"
@@ -804,6 +815,26 @@ const handleCurrentChangeCall = (val: number) => {
   getCallData();
 };
 
+const recordDialog = ref(false);
+const orgDialogShow = ref(false);
+const orgTitle = ref("");
+
+const handleTran = (item: any) => {
+  currentInfo.value = item;
+  orgDialogShow.value = true;
+  orgTitle.value = "转让客户";
+};
+const handleShare = (item: any) => {
+  currentInfo.value = item;
+  orgDialogShow.value = true;
+  orgTitle.value = "分享客户";
+};
+
+const handleFlowDetail = (item: any) => {
+  currentInfo.value = item;
+  recordDialog.value = true;
+};
+
 onMounted(() => {
   // getData();
   // getTagOptions();
@@ -953,17 +984,36 @@ onMounted(() => {
             {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
           </template>
         </el-table-column>
-        <el-table-column
-          label="操作"
-          fixed="right"
-          width="220"
-          #default="props"
-        >
-          <div class="flex flex-wrap content-start gap-y-1 gap-x-2">
+        <el-table-column label="操作" fixed="right" width="80" #default="props">
+          <el-dropdown trigger="click">
+            <el-icon :size="20"><More /></el-icon>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item :icon="Edit" @click="handleEdit(props.row)"
+                  >编辑</el-dropdown-item
+                >
+                <el-dropdown-item
+                  :icon="Memo"
+                  @click="handleFlowDetail(props.row)"
+                  >操作记录</el-dropdown-item
+                >
+                <el-dropdown-item :icon="Sort" @click="handleTran(props.row)"
+                  >转让客户</el-dropdown-item
+                >
+                <el-dropdown-item :icon="Share" @click="handleShare(props.row)"
+                  >分享客户</el-dropdown-item
+                >
+                <el-dropdown-item :icon="Delete" @click="handleDel(props.row)"
+                  >删除</el-dropdown-item
+                >
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <!-- <div class="flex flex-wrap content-start gap-y-1 gap-x-2">
             <el-button link type="info" @click="handleEdit(props.row)"
               >编辑</el-button
-            >
-            <!-- <el-button
+            > -->
+          <!-- <el-button
               class="!ml-0"
               link
               type="primary"
@@ -979,6 +1029,12 @@ onMounted(() => {
             >
               通话记录
             </div> -->
+          <!-- <div
+              class="text-cyan-600 hover:text-cyan-300 cursor-default mr-2"
+              @click="recordDialog = true"
+            >
+              跟进记录
+            </div>
             <el-button
               class="!ml-0"
               link
@@ -986,7 +1042,7 @@ onMounted(() => {
               @click="handleDel(props.row)"
               >删除</el-button
             >
-          </div>
+          </div> -->
         </el-table-column>
       </el-table>
       <div class="mt-4 flex justify-end">
@@ -1312,6 +1368,17 @@ onMounted(() => {
         @current-change="handleCurrentChangeCall"
       />
     </el-dialog>
+    <recrodDialog
+      :show="recordDialog"
+      :info="currentInfo"
+      @close="recordDialog = false"
+    />
+    <orgDialog
+      :show="orgDialogShow"
+      :info="currentInfo"
+      @close="orgDialogShow = false"
+      :title="orgTitle"
+    />
   </div>
 </template>
 
