@@ -97,6 +97,12 @@ watch(
             >{{ props.info.phone }}
           </p>
         </div>
+        <div
+          class="mt-4 flex items-center rounded text-sm font-semibold text-zinc-700"
+        >
+          <div class="w-2.5 h-2.5 bg-cyan-600 rounded-full mr-1"></div>
+          进度：{{ props.info.progress?.name }}
+        </div>
         <div class="mt-4 flex gap-2 flex-wrap">
           <el-icon class="!text-zinc-600 hover:!text-zinc-400" :size="18"
             ><EditPen

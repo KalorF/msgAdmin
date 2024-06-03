@@ -1,85 +1,92 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted, reactive } from "vue";
 import { DataAnalysis } from "@element-plus/icons-vue";
+import { callRank } from "@/api/bi";
+import { getAllOrg } from "@/api/organization";
 
-const tableData = [
-  {
-    index: 1,
-    date: "员工1",
-    name: "Tom",
-    address: "No. 189, Grove St, Los Angeles"
-  },
-  {
-    index: 2,
-    date: "员工2",
-    name: "Tom",
-    address: "No. 189, Grove St, Los Angeles"
-  },
-  {
-    index: 3,
-    date: "员工3",
-    name: "Tom",
-    address: "No. 189, Grove St, Los Angeles"
-  },
-  {
-    index: 4,
-    date: "员工4",
-    name: "Tom",
-    address: "No. 189, Grove St, Los Angeles"
-  },
-  {
-    index: 5,
-    date: "员工5",
-    name: "Tom",
-    address: "No. 189, Grove St, Los Angeles"
-  },
-  {
-    index: 6,
-    date: "员工6",
-    name: "Tom",
-    address: "No. 189, Grove St, Los Angeles"
-  },
-  {
-    index: 7,
-    date: "员工7",
-    name: "Tom",
-    address: "No. 189, Grove St, Los Angeles"
-  }
-];
+const tableData = ref([]);
+const options = ref([]);
 
-const formInline = ref({
-  name: "",
-  date: 0
+const formInline = reactive({
+  organization_id_str_list: [],
+  date: []
 });
 
 const onSubmit = () => {
-  console.log("dsasd");
+  getData();
 };
 
 const onReset = () => {
-  console.log("reset");
+  formInline.organization_id_str_list = [];
+  formInline.date = [];
+  getData();
+};
+
+const getAllOrgData = () => {
+  getAllOrg().then(res => {
+    if (res.code === 200) {
+      options.value = res.data || [];
+    } else {
+      options.value = [];
+    }
+  });
+};
+
+const getData = () => {
+  let data: any = {};
+  if (formInline.organization_id_str_list.length) {
+    data.organization_id_str_list = formInline.organization_id_str_list;
+  }
+  if (formInline.date.length) {
+    data.start_time = formInline.date[0] / 1000;
+    data.end_time = formInline.date[1] / 1000;
+  }
+  callRank(data).then(res => {
+    if (res.code === 200) {
+      const data = res.data.rank_list || [];
+      data.forEach((item, index) => {
+        item.index = index + 1;
+      });
+      tableData.value = data;
+    }
+  });
 };
 
 defineOptions({
   name: "Welcome"
+});
+
+onMounted(() => {
+  getData();
+  getAllOrgData();
 });
 </script>
 
 <template>
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)] w-full">
     <el-form :inline="true" :model="formInline" class="demo-form-inline">
-      <el-form-item label="统计员工">
-        <el-input
-          v-model="formInline.name"
-          placeholder="请输入客户名称"
+      <el-form-item label="所在组织">
+        <el-select
+          v-model="formInline.organization_id_str_list"
+          multiple
+          placeholder="请选择"
+          style="width: 240px"
           clearable
-        />
+        >
+          <el-option
+            v-for="item in options"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
+          />
+        </el-select>
       </el-form-item>
-      <el-form-item label="最近更新时间">
+      <el-form-item label="日期选择">
         <el-date-picker
           v-model="formInline.date"
-          type="date"
-          placeholder="请选择"
+          type="daterange"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
           value-format="x"
           clearable
         />
@@ -90,7 +97,7 @@ defineOptions({
       </el-form-item>
     </el-form>
 
-    <div class="flex flex-wrap gap-6 content-start">
+    <!-- <div class="flex flex-wrap gap-6 content-start">
       <div
         style="height: 120px"
         class="h-70 w-60 rounded-md border p-4 border-slate-50 shadow hover:border-slate-100 hover:shadow-sm relative"
@@ -110,7 +117,7 @@ defineOptions({
         <p class="text-stone-400 text-sm mt-2">全部成员</p>
         <p class="text-2xl font-semibold mt-2">5435436</p>
       </div>
-    </div>
+    </div> -->
     <div class="mt-4 flex-1">
       <el-table
         header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
@@ -140,12 +147,16 @@ defineOptions({
             <p v-else>{{ props.row.index }}</p>
           </template>
         </el-table-column>
-        <el-table-column prop="date" label="员工" width="180" />
-        <el-table-column prop="name" label="通话时长" width="180" />
-        <el-table-column prop="address" label="入库客户数" />
-        <el-table-column prop="address" label="联系客户数" />
-        <el-table-column prop="address" label="通话次数" />
-        <el-table-column prop="address" label="通话时长" />
+        <el-table-column label="员工">
+          <template #default="props">
+            {{ props.row.staff.name }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="call_duration" label="通话时长" />
+        <el-table-column prop="call_count" label="通话次数" />
+        <el-table-column prop="avg_call_duration" label="平均通话时长" />
+        <el-table-column prop="connect_count" label="联系客户数" />
+        <el-table-column prop="connect_rate" label="联系频率" />
       </el-table>
     </div>
   </div>

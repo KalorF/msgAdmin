@@ -17,7 +17,9 @@ import {
   visitUpdate,
   delVisit,
   customerQuery,
-  operateCreate
+  operateCreate,
+  customerViewList,
+  customerView
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag } from "@/api/tag";
 import {
@@ -38,7 +40,8 @@ import {
   Memo,
   Share,
   Sort,
-  More
+  More,
+  Edit
 } from "@element-plus/icons-vue";
 import { onMounted, nextTick, onUnmounted, computed } from "vue";
 import { ElMessageBox } from "element-plus";
@@ -52,6 +55,7 @@ import { FLOW_TYPE, RECORD_TYPE } from "@/types";
 import tagPop from "@/components/tagPop/index.vue";
 import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
+import progressDialog from "@/components/progress/index.vue";
 
 defineOptions({
   name: "customerlist2"
@@ -93,7 +97,12 @@ const getAllocData = () => {
 const onSubmit = async () => {
   currentPage.value = 1;
   pageSize.value = 10;
-  getData();
+  if (cutomerType.value) {
+    getViewData();
+  } else {
+    getData();
+  }
+  // getData();
   // if (valueGroup.value.length) {
   //   const res = await getCustomerByTagId({ tag_id_list: valueGroup.value });
   //   tableData.value = res.data || [];
@@ -129,6 +138,7 @@ const onReset = () => {
   valueGroup.value = [];
   currentPage.value = 1;
   pageSize.value = 10;
+  cutomerType.value = "";
   getData();
 };
 
@@ -670,7 +680,17 @@ const handleGetCustomer = async () => {
 
 const recordDialog = ref(false);
 const orgDialogShow = ref(false);
+const progressDialogShow = ref(false);
 const orgTitle = ref("");
+
+const handleProgress = (item: any) => {
+  currentCustomerInfo.value = item;
+  progressDialogShow.value = true;
+};
+
+const handleProgressConfrim = () => {
+  getData();
+};
 
 const handleTran = (item: any) => {
   currentCustomerInfo.value = item;
@@ -688,6 +708,22 @@ const handleFlowDetail = (item: any) => {
   recordDialog.value = true;
 };
 
+const cutomerType = ref("");
+const customerOption = ref([]);
+
+const getViewList = () => {
+  customerViewList().then(res => {
+    customerOption.value = res.data || [];
+  });
+};
+
+const getViewData = () => {
+  const data = customerOption.value.find(item => item.id === cutomerType.value);
+  customerView(data).then(res => {
+    console.log(res);
+  });
+};
+
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", visiableChange);
 });
@@ -695,6 +731,7 @@ onUnmounted(() => {
 onMounted(async () => {
   initCorder();
   getData();
+  getViewList();
   // getTagOptions();
   const url = await (localForage().getItem("audiobool") as any);
   if (url) {
@@ -754,6 +791,20 @@ onMounted(async () => {
             readonly
           />
         </tagPop>
+      </el-form-item>
+      <el-form-item label="客户类型">
+        <el-select
+          v-model="cutomerType"
+          placeholder="请选择"
+          style="width: 240px"
+        >
+          <el-option
+            v-for="item in customerOption"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onSubmit">查询</el-button>
@@ -837,6 +888,9 @@ onMounted(async () => {
             <el-dropdown-menu>
               <el-dropdown-item :icon="Cellphone" @click="handleCall(props.row)"
                 >拨打电话</el-dropdown-item
+              >
+              <el-dropdown-item :icon="Edit" @click="handleProgress(props.row)"
+                >修改进度</el-dropdown-item
               >
               <el-dropdown-item
                 :icon="Memo"
@@ -1069,6 +1123,13 @@ onMounted(async () => {
       :info="currentCustomerInfo"
       @close="orgDialogShow = false"
       :title="orgTitle"
+    />
+    <progressDialog
+      :show="progressDialogShow"
+      :info="currentCustomerInfo"
+      @close="progressDialogShow = false"
+      @confirm="handleProgressConfrim"
+      :title="'修改进度'"
     />
   </div>
 </template>
