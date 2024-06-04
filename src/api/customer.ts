@@ -108,3 +108,11 @@ export const customerQuery = (data: any) => {
 export const customerUpte = (data: any) => {
   return http.request<any>('post', '/api/customer/update', { data });
 }
+
+export const customerViewList = () => {
+  return http.request<any>('post', '/api/customer/queryview/list', { });
+}
+
+export const customerView = (data: any) => {
+  return http.request<any>('post', '/api/customer/queryview', { data });
+}
