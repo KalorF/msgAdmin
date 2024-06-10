@@ -1,9 +1,8 @@
 <script lang="ts" setup>
 import { getGroupCourseList, getAllCourse } from "@/api/course";
 
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted, nextTick, defineAsyncComponent } from "vue";
 import dayjs from "dayjs";
-import chapter from "./chapter.vue";
 
 const formInline = ref({ groupId: "" });
 const groupOptions = ref([]);
@@ -13,6 +12,7 @@ const container = ref<null | HTMLElement>(null);
 const listHeight = ref(0);
 const showChapter = ref(false);
 const itemInfo = ref(null);
+const chapter = defineAsyncComponent(() => import("./chapter.vue"));
 
 const getAllData = () => {
   // const ids = groupOptions.value.map(item => item.id);

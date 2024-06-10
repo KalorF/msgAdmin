@@ -199,12 +199,14 @@ const dialogData = ref({
   name: {
     label: "客户名称",
     value: "",
-    type: "text"
+    type: "text",
+    is_require: true
   },
   phone: {
     label: "手机",
     value: "",
-    type: "tel"
+    type: "tel",
+    is_require: true
   },
   company: {
     label: "公司",
@@ -468,7 +470,7 @@ const handleEdit = (item: any) => {
 const handleConfirm = () => {
   let flag = false;
   Object.values(dialogData.value).some(item => {
-    if (!item.value) {
+    if ((item as any).is_require && !item.value) {
       message(`请输入${item.label}`, { type: "info" });
       flag = true;
       return true;
@@ -754,7 +756,8 @@ const handleConfirmTag = () => {
       }
     })
     .catch(err => {
-      message("设置失败", { type: "error" });
+      message(err?.response?.data?.msg || "设置失败", { type: "error" });
+      // message("设置失败", { type: "error" });
     });
 };
 
@@ -1068,20 +1071,22 @@ onMounted(() => {
       @closed="handleCancelCrete"
       align-center
     >
-      <el-form label-position="right" class="demo-form-inline">
-        <el-form-item
-          :label="item.label"
-          v-for="(item, key) in dialogData"
-          :key="key"
-        >
-          <el-input
-            v-model="item.value"
-            :type="item.type"
-            :placeholder="'请输入' + item.label"
-            clearable
-          />
-        </el-form-item>
-      </el-form>
+      <div class="overflow-auto" style="max-height: 400px">
+        <el-form label-position="right" class="demo-form-inline">
+          <el-form-item
+            :label="item.label"
+            v-for="(item, key) in dialogData"
+            :key="key"
+          >
+            <el-input
+              v-model="item.value"
+              :type="item.type"
+              :placeholder="'请输入' + item.label"
+              clearable
+            />
+          </el-form-item>
+        </el-form>
+      </div>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="handleCancelCrete">取消</el-button>

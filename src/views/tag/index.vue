@@ -39,6 +39,7 @@ const tagList = ref([]);
 const dialogVisiable = ref(false);
 const courseName = ref("");
 const courseRadio = ref(0);
+const courseShowAdmin = ref(false);
 const isEdit = ref(false);
 const curId = ref("");
 const activeItem = ref();
@@ -90,6 +91,7 @@ const confirmCreate = () => {
       ? {
           name: courseName.value,
           tag_group_type: courseRadio.value,
+          just_show_for_admin: courseShowAdmin.value,
           id: curId.value
         }
       : { name: courseName.value, tag_group_type: courseRadio.value };
@@ -114,6 +116,7 @@ const handleEdit = (item: any) => {
   curId.value = item.id;
   courseName.value = item.name;
   courseRadio.value = item.tag_group_type;
+  courseShowAdmin.value = item.just_show_for_admin;
   dialogVisiable.value = true;
 };
 
@@ -137,14 +140,18 @@ const handleDel = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      deleteGroupTag(id).then(res => {
-        if (res.code === 200) {
-          ElMessage.success("删除成功");
-          getData();
-        } else {
-          ElMessage.error("删除失败");
-        }
-      });
+      deleteGroupTag(id)
+        .then(res => {
+          if (res.code === 200) {
+            ElMessage.success("删除成功");
+            getData();
+          } else {
+            ElMessage.error("删除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.msg || "删除失败");
+        });
     })
     .catch(() => {});
 };
@@ -156,15 +163,19 @@ const handleDelCourse = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      delTag(id).then(async res => {
-        if (res.code === 200) {
-          ElMessage.success("删除成功");
-          await getData();
-          getList();
-        } else {
-          ElMessage.error("删除失败");
-        }
-      });
+      delTag(id)
+        .then(async res => {
+          if (res.code === 200) {
+            ElMessage.success("删除成功");
+            await getData();
+            getList();
+          } else {
+            ElMessage.error("删除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.msg || "删除失败");
+        });
     })
     .catch(() => {});
 };
@@ -198,7 +209,7 @@ watch(
 );
 
 const uploadDialog = ref(false);
-const upload = ref({ name: "", cover_url: "" });
+const upload = ref({ name: "", cover_url: "", just_show_for_admin: false });
 const uploadImg = ref("");
 const imageInfo = ref();
 const uploadRef = ref(null);
@@ -222,6 +233,7 @@ const handleEditCourse = (item: any) => {
   uploadEdit.value = true;
   curCourseInfo.value = item;
   upload.value.name = item.name;
+  upload.value.just_show_for_admin = item.just_show_for_admin;
   upload.value.cover_url = item.cover_url;
   uploadImg.value = item.cover_url;
   uploadDialog.value = true;
@@ -250,6 +262,7 @@ const handleUpload = async () => {
   const func = uploadEdit.value ? updateTag : createTag;
   const baseData = {
     name: upload.value.name,
+    just_show_for_admin: upload.value.just_show_for_admin,
     group_id: activeItem.value.id
   };
   const postData = uploadEdit.value
@@ -265,7 +278,9 @@ const handleUpload = async () => {
       }
     })
     .catch(err => {
-      ElMessage.error(uploadEdit.value ? "修改失败" : "创建失败");
+      ElMessage.error(
+        err?.response?.data?.msg || (uploadEdit.value ? "修改失败" : "创建失败")
+      );
     });
 };
 </script>
@@ -447,6 +462,12 @@ const handleUpload = async () => {
             <el-radio :value="1" size="large">多选</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="是否管理员可见" class="flex items-center">
+          <el-radio-group v-model="courseShowAdmin">
+            <el-radio :value="false" size="large">否</el-radio>
+            <el-radio :value="true" size="large">是</el-radio>
+          </el-radio-group>
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -472,6 +493,12 @@ const handleUpload = async () => {
             placeholder="请输入标签名称"
             clearable
           />
+        </el-form-item>
+        <el-form-item label="是否管理员可见" class="flex items-center">
+          <el-radio-group v-model="upload.just_show_for_admin">
+            <el-radio :value="false" size="large">否</el-radio>
+            <el-radio :value="true" size="large">是</el-radio>
+          </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>

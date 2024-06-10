@@ -10,7 +10,8 @@ import {
   getpoolList,
   poolSet,
   allocSetConfig,
-  poolDelStaff
+  poolDelStaff,
+  poolDelete
 } from "@/api/alloc";
 import { getAllTags, getAllGroupTag } from "@/api/tag";
 import {
@@ -23,6 +24,17 @@ import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
 import { message } from "@/utils/message";
 import tagPop from "@/components/tagPop/index.vue";
+import { customerQuery } from "@/api/customer";
+import {
+  Avatar,
+  EditPen,
+  More,
+  Edit,
+  Delete,
+  Memo,
+  Share,
+  Sort
+} from "@element-plus/icons-vue";
 
 const orgList = ref([]);
 const myorg = ref();
@@ -144,7 +156,10 @@ const confirmCreate = () => {
       }
     })
     .catch(err => {
-      message(isEdit.value ? "编辑失败" : "创建失败", { type: "error" });
+      message(
+        err?.response?.data?.msg || (isEdit.value ? "编辑失败" : "创建失败"),
+        { type: "error" }
+      );
     });
 };
 
@@ -167,14 +182,18 @@ const handleDel = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      poolDel({ name: id }).then(async res => {
-        if (res.code === 200) {
-          ElMessage.success("删除成功");
-          getallOrgData();
-        } else {
-          ElMessage.error("删除失败");
-        }
-      });
+      poolDelete({ id_str_list: [id] })
+        .then(async res => {
+          if (res.code === 200) {
+            ElMessage.success("删除成功");
+            getallOrgData();
+          } else {
+            ElMessage.error("删除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.msg || "删除失败");
+        });
     })
     .catch(() => {});
 };
@@ -189,16 +208,22 @@ const handleDelFromPool = (item: any, fromMul = false) => {
       const data = fromMul
         ? { staff_id_str_list: selMulIds.value }
         : { staff_id_str_list: [item.id] };
-      poolDelStaff(data).then(async res => {
-        if (res.code === 200) {
-          ElMessage.success("移除成功");
-          await getallOrgData();
-          const item = orgList.value.find(item => item.id === activeOrg.value);
-          accountList.value = item.staff_allocation_list;
-        } else {
-          ElMessage.error("移除失败");
-        }
-      });
+      poolDelStaff(data)
+        .then(async res => {
+          if (res.code === 200) {
+            ElMessage.success("移除成功");
+            await getallOrgData();
+            const item = orgList.value.find(
+              item => item.id === activeOrg.value
+            );
+            accountList.value = item.staff_allocation_list;
+          } else {
+            ElMessage.error("移除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.msg || "移除失败");
+        });
     })
     .catch(() => {});
 };
@@ -212,30 +237,17 @@ const handleCurrentChange = (val: number) => {
   getAccountData();
 };
 
-const selOrg = (id: string) => {
+const selOrg = item => {
   pageSize.value = 10;
   currentPage.value = 1;
   total.value = 0;
-  activeOrg.value = id;
+  currentInfo.value = item;
+  activeOrg.value = item.id;
 };
 
 const dialogSearch = ref(false);
 const accountName = ref("");
 const searchData = ref(null);
-
-const handleCancelSearch = () => {
-  dialogSearch.value = false;
-  accountName.value = "";
-  searchData.value = null;
-};
-
-const handleEditAuth = (item: any) => {
-  ElMessage({
-    message: "功能开发中",
-    type: "info",
-    customClass: "pure-message"
-  });
-};
 
 const ruleVisiable = ref(false);
 const ruleData = ref({
@@ -279,7 +291,7 @@ const confirmRule = () => {
       }
     })
     .catch(err => {
-      message("配置失败", { type: "error" });
+      message(err?.response?.data?.msg || "配置失败", { type: "error" });
     });
 };
 
@@ -305,6 +317,7 @@ onMounted(async () => {
   await getallOrgData();
   if (orgList.value.length) {
     activeOrg.value = orgList.value[0].id;
+    currentInfo.value = orgList.value[0];
     accountList.value = orgList.value[0].staff_allocation_list || [];
     if (accountList.value.length) {
       accountList.value = accountList.value.map(item => item.staff);
@@ -320,6 +333,47 @@ watch(activeOrg, () => {
     accountList.value = accountList.value.map(item => item.staff);
   }
 });
+
+const customerList = ref([]);
+const customerTotal = ref(0);
+const customerCurrentPage = ref(1);
+const customerVisiable = ref(false);
+
+const handleViewCustomer = () => {
+  customerTotal.value = 0;
+  customerCurrentPage.value = 1;
+  customerList.value = [];
+  getCustomerData();
+  customerVisiable.value = true;
+};
+
+const getCustomerData = () => {
+  customerQuery({
+    condition: {
+      info: {
+        is_deleted: false,
+        customer_tag_list:
+          currentInfo.value.condition.info.customer_tag_list.map(i => ({
+            tag_id: i.tag_id
+          }))
+      }
+    },
+    page: {
+      limit: 5,
+      offset: customerCurrentPage.value - 1
+    }
+  }).then(res => {
+    if (res.code === 200) {
+      customerList.value = res.data.customers || [];
+      customerTotal.value = res.data.count || 0;
+    }
+  });
+};
+
+const handleChangeCustomerPage = (val: number) => {
+  customerCurrentPage.value = val;
+  getCustomerData();
+};
 </script>
 
 <template>
@@ -335,7 +389,7 @@ watch(activeOrg, () => {
         :key="item.id"
         class="rounded-md hover:bg-[#f5f7fa] p-2 w-full text-sm flex items-center"
         :class="{ 'bg-[#f5f7fa]': item.id === activeOrg }"
-        @click="selOrg(item.id)"
+        @click="selOrg(item)"
       >
         {{ item.name }}
         <div class="ml-auto flex">
@@ -355,8 +409,8 @@ watch(activeOrg, () => {
               d="m469.952 554.24 52.8-7.552L847.104 222.4a32 32 0 1 0-45.248-45.248L477.44 501.44l-7.552 52.8zm422.4-422.4a96 96 0 0 1 0 135.808l-331.84 331.84a32 32 0 0 1-18.112 9.088L436.8 623.68a32 32 0 0 1-36.224-36.224l15.104-105.6a32 32 0 0 1 9.024-18.112l331.904-331.84a96 96 0 0 1 135.744 0z"
             ></path>
           </svg>
-          <!-- <svg
-            @click.stop="handleDel(item)"
+          <svg
+            @click.stop="handleDel(item.id)"
             class="w-4 h-4 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"
@@ -366,7 +420,7 @@ watch(activeOrg, () => {
               fill="currentColor"
               d="M160 256H96a32 32 0 0 1 0-64h256V95.936a32 32 0 0 1 32-32h256a32 32 0 0 1 32 32V192h256a32 32 0 1 1 0 64h-64v672a32 32 0 0 1-32 32H192a32 32 0 0 1-32-32zm448-64v-64H416v64zM224 896h576V256H224zm192-128a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32m192 0a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32"
             ></path>
-          </svg> -->
+          </svg>
         </div>
       </div>
     </div>
@@ -375,10 +429,14 @@ watch(activeOrg, () => {
         <span class="border-l-[#ff922b] border-l-4 text-sm pl-1 rounded"
           >客户池员工</span
         >
+
         <el-button
           type="default"
           class="w-[100px] ml-auto"
-          @click="handleSetRule"
+          @click="handleViewCustomer"
+          >客户池客户</el-button
+        >
+        <el-button type="default" class="w-[100px]" @click="handleSetRule"
           >设置领取规则</el-button
         >
       </div>
@@ -520,6 +578,74 @@ watch(activeOrg, () => {
           <el-button type="primary" @click="confirmRule"> 确认 </el-button>
         </div>
       </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="customerVisiable"
+      title="客户池客户"
+      width="800"
+      align-center
+    >
+      <el-table
+        :data="customerList"
+        header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
+        style="width: 100%"
+        class="flex-1"
+      >
+        <el-table-column type="expand">
+          <template #default="props">
+            <div
+              class="ml-16 text-zinc-500 text-sm flex flex-col flex-wrap content-start gap-1"
+            >
+              <p>地址：{{ props.row.address }}</p>
+              <p>工作地址：{{ props.row.working_address }}</p>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="客户名称" width="150">
+          <template #default="props">
+            <div class="flex items-center">
+              <el-icon :size="24" class="mr-2" color="#393e46"
+                ><Avatar
+              /></el-icon>
+              {{ props.row.name }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="客户标签" width="230">
+          <template #default="props">
+            <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+              <div
+                v-if="props.row.customer_tag_list"
+                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                v-for="item in props.row.customer_tag_list"
+                :key="item.id"
+              >
+                {{ item.tag.name }}
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="phone" width="140" label="手机" />
+        <el-table-column prop="company" width="180" label="公司" />
+        <el-table-column prop="wechat" label="微信" />
+        <el-table-column prop="wecom" label="企业微信" />
+        <el-table-column prop="qq" label="QQ" />
+        <el-table-column label="添加时间" width="200">
+          <template #default="props">
+            {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        v-if="customerTotal"
+        class="flex-wrap gap-y-2 mt-4"
+        v-model:current-page="customerCurrentPage"
+        background
+        layout="total, prev, pager, next, jumper"
+        :total="customerTotal"
+        @current-change="handleChangeCustomerPage"
+      />
     </el-dialog>
   </div>
 </template>

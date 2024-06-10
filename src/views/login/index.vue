@@ -18,6 +18,8 @@ import dayIcon from "@/assets/svg/day.svg?component";
 import darkIcon from "@/assets/svg/dark.svg?component";
 import Lock from "@iconify-icons/ri/lock-fill";
 import User from "@iconify-icons/ri/user-3-fill";
+import { getPolicyByUserId } from "@/api/user";
+import { usePermissionStore } from "@/store/modules/permission";
 
 defineOptions({
   name: "Login"
@@ -48,21 +50,33 @@ const onLogin = async (formEl: FormInstance | undefined) => {
           account: ruleForm.username,
           password: ruleForm.password
         })
-        .then(res => {
+        .then(async res => {
           if (res.code === 200) {
             // 获取后端路由
+            await getAccountByAccount(ruleForm.username).then(r => {
+              if (r.data) {
+                useUserStoreHook().setUserInfo(r.data);
+                window.localStorage.setItem(
+                  "_userinfo",
+                  JSON.stringify(r.data)
+                );
+              }
+            });
+            await getPolicyByUserId({
+              uid_list: [useUserStoreHook().userInfo.id]
+            }).then(res => {
+              let policy = {};
+              if (res.code === 200 && Object.keys(res.data.policies).length) {
+                policy = Object.values(res.data.policies)[0];
+                usePermissionStore().setPolicies(policy);
+              } else {
+                usePermissionStore().setPolicies(policy);
+              }
+              window.localStorage.setItem("_policy", JSON.stringify(policy));
+            });
             initRouter().then(() => {
               router.push(getTopMenu(true).path);
               message("登录成功", { type: "success" });
-              getAccountByAccount(ruleForm.username).then(r => {
-                if (r.data) {
-                  useUserStoreHook().setUserInfo(r.data);
-                  window.localStorage.setItem(
-                    "_userinfo",
-                    JSON.stringify(r.data)
-                  );
-                }
-              });
             });
           }
         })

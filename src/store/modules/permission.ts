@@ -6,6 +6,23 @@ import { useMultiTagsStoreHook } from "./multiTags";
 import { debounce, getKeyList } from "@pureadmin/utils";
 import { ascending, filterTree, filterNoPermissionTree } from "@/router/utils";
 
+const resourceMap = {
+  SimpleBI: ['/'],
+  AccountManager: ['/account'],
+  CustomerTagManager: ['/tag'],
+  CustomerActionManager: ['/customer', '/customerpool'],
+  SimpleCustomer: ['/mycustomer'],
+  OrganizationManager: ['/org'],
+  BankManager: ['/bank'],
+  CourseManager: ['/course'],
+  SimpleCourse: ['/study'],
+  ProgressManager: ['/progress_set']
+};
+
+const otherMap = {
+  exam: ['/exammanger'],
+}
+
 export const usePermissionStore = defineStore({
   id: "pure-permission",
   state: () => ({
@@ -14,14 +31,31 @@ export const usePermissionStore = defineStore({
     // 整体路由生成的菜单（静态、动态）
     wholeMenus: [],
     // 缓存页面keepAlive
-    cachePageList: []
+    cachePageList: [],
+    policies:JSON.parse(window.localStorage.getItem('_policy') || '{}') || {},
   }),
   actions: {
+    setPolicies(policies: any) {
+      this.policies = policies;
+    },
     /** 组装整体路由生成的菜单 */
     handleWholeMenus(routes: any[]) {
       this.wholeMenus = filterNoPermissionTree(
         filterTree(ascending(this.constantMenus.concat(routes)))
       );
+      if (Object.keys(this.policies).length) {
+        const { resources } = this.policies;
+        const hasRes = resources.map(i => i.name) || [];
+        const list = [];
+        hasRes.map(item => {
+          if (resourceMap[item]) {
+            list.push(...resourceMap[item]);
+          }
+        })
+        list.push(...otherMap['exam']);
+        this.wholeMenus = this.wholeMenus.filter(v => list.includes(v.path));
+      }
+      // this.wholeMenus = this.constantMenus.concat(routes);
     },
     cacheOperate({ mode, name }: cacheType) {
       const delIndex = this.cachePageList.findIndex(v => v === name);

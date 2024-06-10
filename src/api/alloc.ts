@@ -64,6 +64,10 @@ export const poolSet = (data: any) => {
   return http.request<any>('post', '/api/allocation/pool', { data });
 }
 
+export const poolDelete = (data: any) => {
+  return http.request<any>('post', '/api/allocation/pool/batch/delete', { data });
+}
+
 export const poolDelStaff = (data: any) => {
   return http.request<any>('post', `/api/allocation/pool/staff/batch/delete`, { data })
 }

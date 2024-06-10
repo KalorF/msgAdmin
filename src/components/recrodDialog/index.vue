@@ -104,9 +104,9 @@ watch(
           进度：{{ props.info.progress?.name }}
         </div>
         <div class="mt-4 flex gap-2 flex-wrap">
-          <el-icon class="!text-zinc-600 hover:!text-zinc-400" :size="18"
+          <!-- <el-icon class="!text-zinc-600 hover:!text-zinc-400" :size="18"
             ><EditPen
-          /></el-icon>
+          /></el-icon> -->
           标签:
           <div
             class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
@@ -150,6 +150,9 @@ watch(
                 </p>
                 <p>拨打时长： {{ msToTime(item.call_duration) }}</p>
               </div>
+            </div>
+            <div class="text-zinc-400 text-xs mt-1">
+              操作者：{{ item.staff.name }}
             </div>
           </el-timeline-item>
         </el-timeline>

@@ -249,14 +249,18 @@ const handleDel = (item: any) => {
     type: "warning"
   })
     .then(() => {
-      deleteCustomer(item.id).then(res => {
-        if (res.code === 200) {
-          message("删除成功", { type: "success" });
-          getData();
-        } else {
-          message("删除失败", { type: "error" });
-        }
-      });
+      deleteCustomer(item.id)
+        .then(res => {
+          if (res.code === 200) {
+            message("删除成功", { type: "success" });
+            getData();
+          } else {
+            message("删除失败", { type: "error" });
+          }
+        })
+        .catch(err => {
+          message(err?.response?.data?.msg || "删除失败", { type: "error" });
+        });
     })
     .catch(() => {});
 };
@@ -271,8 +275,8 @@ const handlecover = (item: any) => {
         message("恢复失败", { type: "error" });
       }
     })
-    .catch(() => {
-      message("恢复失败", { type: "error" });
+    .catch(err => {
+      message(err?.response?.data?.msg || "恢复失败", { type: "error" });
     });
 };
 

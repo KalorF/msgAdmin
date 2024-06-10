@@ -10,7 +10,14 @@ import {
   updateCourse
 } from "@/api/course";
 import { postOss } from "@/api/oss";
-import { ref, reactive, onMounted, nextTick, watch } from "vue";
+import {
+  ref,
+  reactive,
+  onMounted,
+  nextTick,
+  watch,
+  defineAsyncComponent
+} from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 import {
@@ -22,13 +29,13 @@ import {
   Collection
 } from "@element-plus/icons-vue";
 import Axios from "axios";
-import Chapter from "./chapter.vue";
 
 defineOptions({
   name: "courselist"
 });
 
 const showParent = ref(true);
+const Chapter = defineAsyncComponent(() => import("./chapter.vue"));
 
 const container = ref<HTMLElement | null>(null);
 const listHeight = ref(0);
@@ -88,7 +95,9 @@ const confirmCreate = () => {
         }
       })
       .catch(err => {
-        ElMessage.error(isEdit.value ? "修改失败" : "创建失败");
+        ElMessage.error(
+          err?.response?.data?.msg || (isEdit.value ? "修改失败" : "创建失败")
+        );
       });
   }
 };
@@ -120,14 +129,18 @@ const handleDel = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      delGroupCourse(id).then(res => {
-        if (res.code === 200) {
-          ElMessage.success("删除成功");
-          getData();
-        } else {
-          ElMessage.error("删除失败");
-        }
-      });
+      delGroupCourse(id)
+        .then(res => {
+          if (res.code === 200) {
+            ElMessage.success("删除成功");
+            getData();
+          } else {
+            ElMessage.error("删除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.msg || "删除失败");
+        });
     })
     .catch(() => {});
 };
@@ -139,14 +152,18 @@ const handleDelCourse = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      delCourse(id).then(res => {
-        if (res.code === 200) {
-          ElMessage.success("删除成功");
-          getList();
-        } else {
-          ElMessage.error("删除失败");
-        }
-      });
+      delCourse(id)
+        .then(res => {
+          if (res.code === 200) {
+            ElMessage.success("删除成功");
+            getList();
+          } else {
+            ElMessage.error("删除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.msg || "删除失败");
+        });
     })
     .catch(() => {});
 };
@@ -247,13 +264,19 @@ const handleUpload = async () => {
   const postData = uploadEdit.value
     ? Object.assign(baseData, { id: curCourseInfo.value.id })
     : baseData;
-  func({ ...postData }).then(res => {
-    if (res.code === 200) {
-      ElMessage.success(uploadEdit.value ? "修改成功" : "上传成功");
-      handleCloseUpload();
-      getList();
-    }
-  });
+  func({ ...postData })
+    .then(res => {
+      if (res.code === 200) {
+        ElMessage.success(uploadEdit.value ? "修改成功" : "上传成功");
+        handleCloseUpload();
+        getList();
+      }
+    })
+    .catch(err => {
+      ElMessage.error(
+        err?.response?.data?.msg || uploadEdit.value ? "修改失败" : "上传失败"
+      );
+    });
 };
 
 const handleViewChapter = (item: any) => {
