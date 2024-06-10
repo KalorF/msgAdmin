@@ -69,14 +69,20 @@ const handleDel = (item: any) => {
     type: "warning"
   })
     .then(() => {
-      upsertProgress({ ...item, is_deleted: true }).then(async res => {
-        if (res.code === 200) {
-          message("删除成功", { type: "success" });
-          getList();
-        } else {
-          message("删除失败", { type: "error" });
-        }
-      });
+      upsertProgress({ ...item, is_deleted: true })
+        .then(async res => {
+          if (res.code === 200) {
+            message("删除成功", { type: "success" });
+            getList();
+          } else {
+            message("删除失败", { type: "error" });
+          }
+        })
+        .catch(err => {
+          message(err?.response?.data?.message || "删除失败", {
+            type: "error"
+          });
+        });
     })
     .catch(() => {});
 };

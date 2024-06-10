@@ -81,14 +81,18 @@ const handleDel = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      delChapter(id).then(res => {
-        if (res.code === 200) {
-          ElMessage.success("删除成功");
-          getList();
-        } else {
-          ElMessage.error("删除失败");
-        }
-      });
+      delChapter(id)
+        .then(res => {
+          if (res.code === 200) {
+            ElMessage.success("删除成功");
+            getList();
+          } else {
+            ElMessage.error("删除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.message || "删除失败");
+        });
     })
     .catch(() => {});
 };
@@ -184,13 +188,20 @@ const handleUpload = async () => {
   const postData = uploadEdit.value
     ? Object.assign(baseData, { id: curCourseInfo.value.id })
     : baseData;
-  func({ ...postData }).then(res => {
-    if (res.code === 200) {
-      ElMessage.success(uploadEdit.value ? "修改成功" : "上传成功");
-      handleCloseUpload();
-      getList();
-    }
-  });
+  func({ ...postData })
+    .then(res => {
+      if (res.code === 200) {
+        ElMessage.success(uploadEdit.value ? "修改成功" : "上传成功");
+        handleCloseUpload();
+        getList();
+      }
+    })
+    .catch(err => {
+      ElMessage.error(
+        err?.response?.data?.message ||
+          (uploadEdit.value ? "修改失败" : "上传失败")
+      );
+    });
 };
 
 const contentDialog = ref(false);
@@ -375,7 +386,7 @@ onMounted(() => {
     <el-dialog
       v-model="contentDialog"
       title="章节内容"
-      width="600"
+      fullscreen
       @closed="handleContentClose"
       align-center
     >
@@ -391,7 +402,7 @@ onMounted(() => {
             :src="contentItem.video_url"
           ></video>
           <div
-            class="w-full h-[400px] border border-slate-100 rounded-sm"
+            class="w-full h-[550px] border border-slate-100 rounded-sm"
             v-if="contentItem.pdf_url"
           >
             <PDF :src="contentItem.pdf_url" />

@@ -91,6 +91,7 @@ export function removeToken() {
   Cookies.remove(multipleTabsKey);
   window.localStorage.removeItem('_token');
   window.localStorage.removeItem('_userinfo');
+  window.localStorage.removeItem('_policy');
   storageLocal().removeItem(userKey);
 }
 

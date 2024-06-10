@@ -7,6 +7,7 @@ import { useUserStoreHook } from "@/store/modules/user";
 import { operateCreate } from "@/api/customer";
 import { FLOW_TYPE, RECORD_TYPE } from "@/types";
 import { message } from "@/utils/message";
+import { useNav } from "@/layout/hooks/useNav";
 
 const userStroe = useUserStoreHook();
 
@@ -50,7 +51,7 @@ const handleConfirm = () => {
     message("请选择");
     return;
   }
-  const isShare = props.title.indexOf("转让") > -1;
+  const isShare = props.title.indexOf("分享") > -1;
   let data: any = {
     staff_id: userStroe.userInfo.id,
     customer_id: props.info.id,

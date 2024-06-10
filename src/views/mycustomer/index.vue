@@ -19,7 +19,8 @@ import {
   customerQuery,
   operateCreate,
   customerViewList,
-  customerView
+  customerView,
+  customerUpte
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag } from "@/api/tag";
 import {
@@ -41,7 +42,8 @@ import {
   Share,
   Sort,
   More,
-  Edit
+  Edit,
+  EditPen
 } from "@element-plus/icons-vue";
 import { onMounted, nextTick, onUnmounted, computed } from "vue";
 import { ElMessageBox } from "element-plus";
@@ -194,10 +196,10 @@ const getVisit = () => {
 
 const getData = () => {
   customerQuery({
-    allocation: {
-      staff_id: userStore.userInfo.id
-    },
     condition: {
+      allocation: {
+        staff_id: userStore.userInfo.id
+      },
       info: {
         is_deleted: false,
         name: formInline.user,
@@ -560,9 +562,9 @@ const visiableChange = () => {
   if (document.visibilityState === "visible" && startTime.value) {
     callTime.value = Date.now() - startTime.value;
     // 判断是否是androids
-    if (checkAndroid()) {
-      getCorder();
-    }
+    // if (checkAndroid()) {
+    //   getCorder();
+    // }
     // alert("通话完成");
     callback();
     startTime.value = 0;
@@ -573,22 +575,22 @@ const visiableChange = () => {
 let isOpen = false;
 
 const handleCall = (item: any) => {
-  // if (window.innerWidth > 766) {
-  //   message("请在移动端浏览器打开进行电话拨打");
-  //   return;
-  // }
-  if (checkAndroid()) {
-    recorderContext.open(
-      () => {
-        recorderContext.start();
-        isOpen = true;
-      },
-      () => {
-        isOpen = false;
-        console.log("权限未打开");
-      }
-    );
+  if (window.innerWidth > 766) {
+    message("请在移动端浏览器打开进行电话拨打");
+    return;
   }
+  // if (checkAndroid()) {
+  //   recorderContext.open(
+  //     () => {
+  //       recorderContext.start();
+  //       isOpen = true;
+  //     },
+  //     () => {
+  //       isOpen = false;
+  //       console.log("权限未打开");
+  //     }
+  //   );
+  // }
 
   startCall.value = true;
   // if (isOpen) {
@@ -671,9 +673,13 @@ const handleGetCustomer = async () => {
   const staff_id = userStore.userInfo.id;
   const check = await allocConfigCheck({ staff_id });
   if (check.data.can_alloc) {
-    const res = await allocConfigAlloc({ staff_id });
-    if (res.code === 200) {
-      getData();
+    try {
+      const res = await allocConfigAlloc({ staff_id });
+      if (res.code === 200) {
+        getData();
+      }
+    } catch (e) {
+      message(e?.response?.data?.msg || "领取失败", { type: "error" });
     }
   }
 };
@@ -724,6 +730,60 @@ const getViewData = () => {
   });
 };
 
+const tagDialogVisiable = ref(false);
+const tagGroup = ref("");
+const tagGroupCheckitems = ref([]);
+
+const handleTagCancel = () => {
+  tagGroup.value = "";
+  tagGroupCheckitems.value = [];
+  tagDialogVisiable.value = false;
+};
+
+const tagGroupChange = (val: any) => {
+  if (val.length) {
+    tagGroupCheckitems.value = val;
+    tagGroup.value = val.map(i => i.name).join("、");
+  } else {
+    tagGroupCheckitems.value = [];
+    tagGroup.value = "";
+  }
+};
+
+const handleEditTag = (item: any) => {
+  currentInfo.value = item;
+  if (item.customer_tag_list && item.customer_tag_list.length) {
+    tagGroupCheckitems.value = item.customer_tag_list.map(i => i.tag);
+    tagGroup.value = tagGroupCheckitems.value.map(i => i.name).join("、");
+  }
+  tagDialogVisiable.value = true;
+};
+
+const handleConfirmTag = () => {
+  if (tagGroupCheckitems.value.length === 0) {
+    message("请选择标签");
+    return;
+  }
+  const data = Object.assign({}, { ...currentInfo.value });
+  data.customer_tag_list = tagGroupCheckitems.value.map(i => ({
+    tag_id: i.id
+  }));
+  customerUpte(data)
+    .then(res => {
+      if (res.code === 200) {
+        message("设置成功", { type: "success" });
+        handleTagCancel();
+        getData();
+      } else {
+        message("设置失败", { type: "error" });
+      }
+    })
+    .catch(err => {
+      message(err?.response?.data?.msg || "设置失败", { type: "error" });
+      // message("设置失败", { type: "error" });
+    });
+};
+
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", visiableChange);
 });
@@ -744,7 +804,7 @@ onMounted(async () => {
 <template>
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)]">
     <!-- <audio controls :src="audioSrc"></audio> -->
-    <!-- <input type="file" accept="audio/*" capture="microphone" /> -->
+    <!-- <input type="file" accept="audio/mp3" /> -->
     <el-button type="primary" round class="w-40 mb-4" @click="handleGetCustomer"
       >领取客户</el-button
     >
@@ -825,7 +885,7 @@ onMounted(async () => {
             <div class="flex flex-col gap-2 content-start">
               <p>地址：{{ props.row.address }}</p>
               <p>工作地址：{{ props.row.working_address }}</p>
-              <div
+              <!-- <div
                 v-if="props.row.customer_tag_list"
                 class="flex items-center flex-wrap gap-2 mb-2"
               >
@@ -837,13 +897,13 @@ onMounted(async () => {
                 >
                   {{ item.tag.name }}
                 </div>
-              </div>
+              </div> -->
             </div>
             <!-- <div class="ml-10">回访记录：xxxxx</div> -->
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="客户名称">
+      <el-table-column label="客户名称" width="150">
         <template #default="props">
           <div class="flex items-center">
             <el-icon class="mr-1" :size="24" color="#393e46"
@@ -853,7 +913,7 @@ onMounted(async () => {
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="phone" label="手机">
+      <el-table-column prop="phone" label="手机" width="150">
         <template #default="props">
           <div class="flex items-center">
             <el-icon class="mr-1" :size="20" color="#393e46"
@@ -863,9 +923,31 @@ onMounted(async () => {
           </div>
         </template>
       </el-table-column>
+      <el-table-column label="客户标签" width="230">
+        <template #default="props">
+          <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+            <el-icon
+              @click="handleEditTag(props.row)"
+              class="!text-zinc-600 hover:!text-zinc-400"
+              :size="18"
+              ><EditPen
+            /></el-icon>
+            <div
+              v-if="props.row.customer_tag_list"
+              class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+              v-for="item in props.row.customer_tag_list"
+              :key="item.id"
+            >
+              {{ item.tag.name }}
+            </div>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="company" label="公司" />
       <el-table-column prop="wechat" label="微信" />
-      <el-table-column prop="wecom" label="wecom" />
+      <el-table-column prop="企业微信" label="wecom" />
+      <el-table-column prop="qq" label="QQ" />
+
       <!-- <el-table-column label="通话记录">
         <template #default="props">
           <div
@@ -876,7 +958,7 @@ onMounted(async () => {
           </div>
         </template>
       </el-table-column> -->
-      <el-table-column label="添加时间" sortable>
+      <el-table-column label="添加时间" width="200" sortable>
         <template #default="props">
           {{ dayjs(props.row.updated_at * 1000).format("YYYY-MM-DD HH:mm") }}
         </template>
@@ -1131,6 +1213,32 @@ onMounted(async () => {
       @confirm="handleProgressConfrim"
       :title="'修改进度'"
     />
+
+    <el-dialog
+      v-model="tagDialogVisiable"
+      title="设置标签"
+      @closed="handleTagCancel"
+      width="350"
+    >
+      <el-form inline>
+        <el-form-item label="标签">
+          <tagPop :checkedItems="tagGroupCheckitems" @change="tagGroupChange">
+            <el-input
+              placeholder="请选择标签"
+              v-model="tagGroup"
+              clearable
+              readonly
+            ></el-input>
+          </tagPop>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="handleTagCancel">取消</el-button>
+          <el-button type="primary" @click="handleConfirmTag"> 确认 </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

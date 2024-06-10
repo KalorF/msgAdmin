@@ -21,6 +21,8 @@ import {
 import { ref, reactive, onMounted, watch, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
+import policyDialog from "@/components/policy/index.vue";
+import { getUserChapterList } from "@/api/chapter";
 
 const orgList = ref([]);
 const myorg = ref();
@@ -107,7 +109,8 @@ const confirmCreate = () => {
         }
       })
       .catch(err => {
-        ElMessage.error(err.msg);
+        ElMessage.error(err?.response?.data?.msg || "操作失败");
+        // ElMessage.error(err.msg);
       });
   }
 };
@@ -126,14 +129,18 @@ const handleDel = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      delOrg(id).then(res => {
-        if (res.code === 200) {
-          ElMessage.success("删除成功");
-          getallOrgData();
-        } else {
-          ElMessage.error("删除失败");
-        }
-      });
+      delOrg(id)
+        .then(res => {
+          if (res.code === 200) {
+            ElMessage.success("删除成功");
+            getallOrgData();
+          } else {
+            ElMessage.error("删除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.msg || "删除失败");
+        });
     })
     .catch(() => {});
 };
@@ -156,7 +163,7 @@ const selOrg = (id: string) => {
 
 const dialogSearch = ref(false);
 const accountName = ref("");
-const searchData = ref<any>();
+const searchData = ref<any>(null);
 
 const handleCancelSearch = () => {
   dialogSearch.value = false;
@@ -193,6 +200,7 @@ const addAccount = () => {
   const data = Object.assign(searchData.value, {
     organization_id: activeOrg.value
   });
+  data.organization.id = data.organization_id;
   delete data.password;
   postAccountUpdate(data)
     .then(res => {
@@ -205,16 +213,21 @@ const addAccount = () => {
       }
     })
     .catch(err => {
-      ElMessage.error(err.msg);
+      ElMessage.error(err?.response?.data?.msg || "添加失败");
     });
 };
 
+const currentInfo = ref();
+const policyShow = ref(false);
+
 const handleEditAuth = (item: any) => {
-  ElMessage({
-    message: "功能开发中",
-    type: "info",
-    customClass: "pure-message"
-  });
+  currentInfo.value = item;
+  policyShow.value = true;
+  // ElMessage({
+  //   message: "功能开发中",
+  //   type: "info",
+  //   customClass: "pure-message"
+  // });
 };
 
 const poolVisible = ref(false);
@@ -245,7 +258,7 @@ const handlePool = () => {
   // const edit = isPoolEdit.value;
   poolSetStaff({
     staff_id_str_list: [currentStaff.value.id],
-    allocationPoolId: poolSelect.value
+    allocation_pool_id: poolSelect.value
   })
     .then(res => {
       if (res.code == 200) {
@@ -256,8 +269,9 @@ const handlePool = () => {
         ElMessage.error("操作失败");
       }
     })
-    .catch(() => {
-      ElMessage.error("操作失败");
+    .catch(err => {
+      ElMessage.error(err?.response?.data?.msg || "操作失败");
+      // ElMessage.error("操作失败");
     });
 };
 
@@ -273,6 +287,64 @@ onMounted(async () => {
 watch(activeOrg, () => {
   getAccountData();
 });
+
+const studyVisible = ref(false);
+const studyInfo = ref(null);
+
+const genStudyData = (data: any) => {
+  const list = {};
+  data.map((item: any) => {
+    const course = item.Chapter.Course;
+    const chapter = item.Chapter;
+    delete chapter.Course;
+    if (!list[course.id]) {
+      list[course.id] = {
+        course: course,
+        chapter: [{ ...chapter, status: item.status }]
+      };
+    } else {
+      list[course.id].chapter.push({ ...chapter, status: item.status });
+    }
+  });
+  Object.values(list).forEach((item: any) => {
+    item.progress =
+      item.chapter.filter(i => i.status === 1).length / item.chapter.length;
+  });
+  return list;
+};
+
+const getStudyInfo = () => {
+  getUserChapterList({
+    uid: currentInfo.value.id,
+    chapter_id_list: []
+  })
+    .then(res => {
+      if (res.code === 200) {
+        studyInfo.value = genStudyData(res.data);
+      } else {
+        studyInfo.value = null;
+      }
+    })
+    .catch(() => {
+      studyInfo.value = null;
+    });
+};
+
+const cancelStudy = () => {
+  studyInfo.value = null;
+  studyVisible.value = false;
+};
+
+const handleViewStudy = (item: any) => {
+  currentInfo.value = item;
+  getStudyInfo();
+  studyVisible.value = true;
+};
+
+const progressformat = (prg: any) => {
+  const percentage = +(prg * 100).toFixed(0);
+  return percentage === 100 ? "100%" : (`${percentage}%` as any);
+};
 </script>
 
 <template>
@@ -345,6 +417,13 @@ watch(activeOrg, () => {
         <el-table-column prop="name" label="姓名" />
         <el-table-column prop="phone" label="手机" />
         <el-table-column prop="email" label="邮箱" />
+        <el-table-column label="学习情况">
+          <template #default="scope">
+            <el-button size="small" @click="handleViewStudy(scope.row)"
+              >查看</el-button
+            >
+          </template>
+        </el-table-column>
         <el-table-column label="创建时间">
           <template #default="scope">
             {{ dayjs(+scope.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
@@ -402,11 +481,12 @@ watch(activeOrg, () => {
     <!-- 搜索弹窗 -->
     <el-dialog
       v-model="dialogSearch"
-      title="搜索账号"
+      title="添加账号"
       width="400"
       @closed="handleCancelSearch"
       align-center
     >
+      <p class="text-gray-400 text-xs mb-2">*输入账号名称搜索后添加</p>
       <el-form inline class="demo-form-inline">
         <el-form-item label="姓名">
           <div class="flex">
@@ -495,5 +575,62 @@ watch(activeOrg, () => {
         </div>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="studyVisible"
+      :title="'学习情况'"
+      width="600"
+      @closed="cancelStudy"
+      align-center
+    >
+      <div style="max-height: 500px" class="overflow-y-auto pb-2">
+        <div class="mb-4" v-for="(item, key) in studyInfo" :key="key">
+          <div
+            class="flex items-center border-l-4 rounded border-[#FF9912] pl-2 content-start w-full study-progress"
+          >
+            {{ item.course.name }}
+            <el-progress
+              :text-inside="false"
+              :stroke-width="7"
+              :percentage="+(item.progress * 100).toFixed(0)"
+              color="#62d2a2"
+            />
+          </div>
+          <div class="mt-2 flex flex-wrap gap-4 content-start">
+            <div
+              v-for="c in item.chapter"
+              :key="c.id"
+              class="shadow w-[260px] bg-[#f5f5f5] hover:shadow-lg rounded-md px-4 flex items-center text-sm justify-between py-2"
+              style="min-height: 40px"
+            >
+              <p class="flex-1 mr-2">
+                {{ c.title }}
+              </p>
+              <p
+                class="text-xs"
+                :class="{
+                  'text-[#f73859]': !c.status,
+                  'text-[#32CD32]': c.status
+                }"
+              >
+                {{ c.status ? "完成" : "未完成" }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <policyDialog
+      :show="policyShow"
+      :info="currentInfo"
+      @close="policyShow = false"
+    />
   </div>
 </template>
+
+<style lang="scss">
+.study-progress .el-progress--line {
+  width: 200px;
+  margin-left: 10px;
+}
+</style>

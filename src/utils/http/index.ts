@@ -13,11 +13,14 @@ import { stringify } from "qs";
 import NProgress from "../progress";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
+import { message } from "../message";
+import { useRouter } from "vue-router";
 
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
   timeout: 60000,
+  baseURL: import.meta.env.MODE === 'development' ? '' : 'http://47.113.116.191',
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
@@ -158,6 +161,7 @@ class PureHttp {
       ...param,
       ...axiosConfig
     } as PureHttpRequestConfig;
+    // const router = useRouter();
 
     // 单独处理自定义请求/响应回调
     return new Promise((resolve, reject) => {
@@ -167,6 +171,13 @@ class PureHttp {
           resolve(response);
         })
         .catch(error => {
+          
+          if (error?.response?.data?.code === 401) {
+            message('账号过期, 请重新登陆', { type: "error" });
+            window.localStorage.removeItem('_token');
+            window.location.href = location.origin + '/#/login';
+            // router.replace('/login');
+          }
           reject(error);
         });
     });

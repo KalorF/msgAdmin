@@ -12,6 +12,7 @@ import { getAllOrg } from "@/api/organization";
 import { ref, reactive, onMounted } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
+import policyDialog from "@/components/policy/index.vue";
 
 defineOptions({
   name: "accountlist"
@@ -80,27 +81,35 @@ const handledel = (id: string) => {
     type: "warning"
   })
     .then(() => {
-      delAccount(id).then(res => {
-        if (res.code === 200) {
-          ElMessage.success("删除成功");
-          getlistData();
-        } else {
-          ElMessage.error("删除失败");
-        }
-      });
+      delAccount(id)
+        .then(res => {
+          if (res.code === 200) {
+            ElMessage.success("删除成功");
+            getlistData();
+          } else {
+            ElMessage.error("删除失败");
+          }
+        })
+        .catch(err => {
+          ElMessage.error(err?.response?.data?.msg || "删除失败");
+        });
     })
     .catch(() => {});
 };
 
 const handdleRecover = (id: string) => {
-  recoverAccount(id).then(res => {
-    if (res.code === 200) {
-      ElMessage.success("恢复成功");
-      getlistData();
-    } else {
-      ElMessage.error("恢复失败");
-    }
-  });
+  recoverAccount(id)
+    .then(res => {
+      if (res.code === 200) {
+        ElMessage.success("恢复成功");
+        getlistData();
+      } else {
+        ElMessage.error("恢复失败");
+      }
+    })
+    .catch(err => {
+      ElMessage.error(err?.response?.data?.msg || "恢复失败");
+    });
 };
 
 const getlistData = () => {
@@ -153,18 +162,27 @@ const handleCreateAccount = () => {
   }
   const flag = isEdit.value;
   const func = flag ? postAccountUpdate : createAccount;
-  let data = Object.assign({}, dialogData.value);
+  let data: any = Object.assign({}, dialogData.value);
+  if (data.organization_id) {
+    data.organization.id = data.organization_id;
+  }
   if (flag) delete data.password;
-  func({ ...data }).then(res => {
-    if (res.code === 200) {
-      ElMessage.success(flag ? "修改成功" : "创建成功");
-      currentPage.value = 1;
-      handleCancelCrete();
-      getlistData();
-    } else {
-      ElMessage.error(flag ? "修改失败" : "创建失败");
-    }
-  });
+  func({ ...data })
+    .then(res => {
+      if (res.code === 200) {
+        ElMessage.success(flag ? "修改成功" : "创建成功");
+        currentPage.value = 1;
+        handleCancelCrete();
+        getlistData();
+      } else {
+        ElMessage.error(flag ? "修改失败" : "创建失败");
+      }
+    })
+    .catch(err => {
+      ElMessage.error(
+        err?.response?.data?.msg || (flag ? "修改失败" : "创建失败")
+      );
+    });
 };
 
 const handleSizeChange = (val: number) => {
@@ -182,6 +200,26 @@ const handleEdit = (item: any) => {
   });
   isEdit.value = true;
   dialogVisible.value = true;
+};
+
+const handleUnlock = (item: any) => {
+  Object.keys(item).forEach(key => {
+    dialogData.value[key] = item[key] === "0" ? "" : item[key];
+  });
+  let data = Object.assign({}, dialogData.value);
+  delete data.password;
+  postAccountUpdate({ ...data, is_lock: false })
+    .then(res => {
+      if (res.code === 200) {
+        ElMessage.success("解锁成功");
+        getlistData();
+      } else {
+        ElMessage.error("解锁失败");
+      }
+    })
+    .catch(err => {
+      ElMessage.error(err?.response?.data?.msg || "解锁失败");
+    });
 };
 
 const pwdDialog = ref(false);
@@ -215,10 +253,18 @@ const confrimModifyPwd = () => {
           ElMessage.error("修改失败");
         }
       })
-      .catch(() => {
-        ElMessage.error("修改失败");
+      .catch(err => {
+        ElMessage.error(err?.response?.data?.msg || "修改失败");
       });
   }
+};
+
+const currentInfo = ref();
+const policyShow = ref(false);
+
+const handleViewPolicy = (item: any) => {
+  currentInfo.value = item;
+  policyShow.value = true;
 };
 
 onMounted(() => {
@@ -268,9 +314,33 @@ onMounted(() => {
       <el-table-column prop="name" label="姓名" />
       <el-table-column prop="phone" label="手机" />
       <el-table-column prop="email" label="邮箱" />
+      <el-table-column label="帐号是否被锁">
+        <template #default="scope">
+          {{ scope.row.is_lock ? "是" : "否" }}
+          <el-button
+            class="ml-1"
+            @click="handleUnlock(scope.rwo)"
+            type="warning"
+            link
+            v-if="scope.row.is_lock"
+            >解锁</el-button
+          >
+        </template>
+      </el-table-column>
       <el-table-column label="创建时间">
         <template #default="scope">
           {{ dayjs(+scope.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
+        </template>
+      </el-table-column>
+      <el-table-column label="权限" align="center">
+        <template #default="scope">
+          <el-button
+            size="small"
+            text
+            type="primary"
+            @click="handleViewPolicy(scope.row)"
+            >编辑权限</el-button
+          >
         </template>
       </el-table-column>
       <el-table-column label="操作" width="240">
@@ -419,6 +489,11 @@ onMounted(() => {
         </div>
       </template>
     </el-dialog>
+    <policyDialog
+      :show="policyShow"
+      :info="currentInfo"
+      @close="policyShow = false"
+    />
   </div>
 </template>
 
