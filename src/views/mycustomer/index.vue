@@ -100,8 +100,6 @@ const onSubmit = async () => {
   currentPage.value = 1;
   pageSize.value = 10;
   if (cutomerType.value) {
-    getViewData();
-  } else {
     getData();
   }
   // getData();
@@ -195,20 +193,29 @@ const getVisit = () => {
 };
 
 const getData = () => {
-  customerQuery({
-    condition: {
+  let searchInfo = {
+    allocation: {
+      staff_id: userStore.userInfo.id
+    },
+    info: {
+      is_deleted: false,
+      name: formInline.user,
+      company: formInline.company,
+      phone: formInline.phone,
+      updated_at: formInline.date ? (formInline.date as any) / 1000 : 0,
+      customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id }))
+    }
+  };
+  if (currentViewData.value) {
+    searchInfo = {
+      ...JSON.parse(currentViewData.value.condition_json),
       allocation: {
         staff_id: userStore.userInfo.id
-      },
-      info: {
-        is_deleted: false,
-        name: formInline.user,
-        company: formInline.company,
-        phone: formInline.phone,
-        updated_at: formInline.date ? (formInline.date as any) / 1000 : 0,
-        customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id }))
       }
-    },
+    };
+  }
+  customerQuery({
+    condition: searchInfo,
     page: {
       limit: pageSize.value,
       offset: currentPage.value - 1
@@ -723,11 +730,20 @@ const getViewList = () => {
   });
 };
 
+const currentViewData = ref();
+
 const getViewData = () => {
-  const data = customerOption.value.find(item => item.id === cutomerType.value);
-  customerView(data).then(res => {
-    console.log(res);
-  });
+  currentViewData.value = customerOption.value.find(
+    item => item.id === cutomerType.value
+  );
+  currentPage.value = 1;
+  getData();
+};
+
+const handleClear = () => {
+  currentPage.value = 1;
+  currentViewData.value = null;
+  getData();
 };
 
 const tagDialogVisiable = ref(false);
@@ -852,9 +868,12 @@ onMounted(async () => {
           />
         </tagPop>
       </el-form-item>
-      <el-form-item label="客户类型">
+      <el-form-item label="客户视图">
         <el-select
           v-model="cutomerType"
+          clearable
+          @change="getViewData"
+          @clear="handleClear"
           placeholder="请选择"
           style="width: 240px"
         >

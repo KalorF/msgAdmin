@@ -75,7 +75,7 @@ onMounted(() => {
     <template #reference>
       <slot></slot>
     </template>
-    <div class="p-2 overflow-auto max-h-100">
+    <div class="p-2 overflow-auto max-h-60">
       <div class="mb-4" v-for="item in tagList" :key="item.id">
         <p class="mb-2 text-sm text-zinc-800 border-l-4 border-amber-500 pl-2">
           {{ item.name }}
