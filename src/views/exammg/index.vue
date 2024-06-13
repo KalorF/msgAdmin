@@ -60,9 +60,9 @@ const handleDel = (id: string) => {
     });
 };
 
-const navigateToDetail = (id: string) => {
-  router.push({ name: "ExamDetail", params: { id } });
-};
+// const navigateToDetail = (id: string) => {
+//   router.push({ name: "ExamDetail", params: { id } });
+// };
 
 onMounted(() => {
   getList();
@@ -83,7 +83,7 @@ onMounted(() => {
           v-for="item in list"
           :key="item.id"
           class="rounded-lg border border-slate-100 w-[260px] h-[200px] shadow-sm flex flex-col relative overflow-hidden hover:border-slate-200 hover:shadow-md transition-all"
-          @click="navigateToDetail(item.id)"
+          @click="handleEdit(item)"
         >
           <div
             @click.stop="handleEdit(item)"

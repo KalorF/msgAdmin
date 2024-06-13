@@ -314,7 +314,7 @@ const getDetail = () => {
             type: "select",
             id: item.id,
             body: {
-              title: item.choices[0].question,
+              title: item.base_info.question,
               score: item.score,
               options: item.choices.map((choice: any, index: number) => ({
                 label: String.fromCharCode(65 + index),
@@ -337,7 +337,7 @@ const getDetail = () => {
             type: "multiSelect",
             id: item.id,
             body: {
-              title: item.multi_choice[0].question,
+              title: item.base_info.question,
               score: item.score,
               options: item.multi_choice.map((choice: any, index: number) => ({
                 label: String.fromCharCode(65 + index),
@@ -371,7 +371,7 @@ const getDetail = () => {
                   { label: "正确", value: "yes" },
                   { label: "错误", value: "no" }
                 ],
-                value: item.answer.answers[0] ? "yes" : "no"
+                value: item.answer.Answers[0] ? "yes" : "no"
               }
             }
           });
@@ -433,7 +433,10 @@ const submitExam = () => {
           choices: item.body.options.map(option => ({
             question: option.value
           })),
-          score: parseInt(item.body.score)
+          score: parseInt(item.body.score),
+          base_info: {
+            question: item.body.title
+          }
         });
         singleIdCounter++;
         break;
@@ -441,6 +444,9 @@ const submitExam = () => {
         formattedData.multi_list.push({
           // id: guid(),
           // id: multiIdCounter.toString(),
+          base_info: {
+            question: item.body.title
+          },
           multi_answer: {
             answers: item.body.answer.value.map(ans => ans.charCodeAt(0) - 64)
           },
@@ -474,19 +480,26 @@ const submitExam = () => {
     }
   });
 
+  if (props.id) {
+    formattedData.id = props.id;
+  }
+
   const data = JSON.stringify(formattedData);
   console.log("格式化后的数据:", data);
-  createExam(data)
+  const func = props.id ? updateExam : createExam;
+  func(data)
     .then(res => {
       if (res.code === 200) {
-        ElMessage.success("试卷添加成功");
+        ElMessage.success(props.id ? "试卷编辑成功" : "试卷添加成功");
         emits("back");
       } else {
-        ElMessage.error("添加失败");
+        ElMessage.error(props.id ? "试卷编辑失败" : "添加失败");
       }
     })
     .catch(err => {
-      ElMessage.error(err?.response?.data?.msg || "添加失败");
+      ElMessage.error(
+        err?.response?.data?.msg || (props.id ? "试卷编辑失败" : "添加失败")
+      );
     });
 };
 </script>

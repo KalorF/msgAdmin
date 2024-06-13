@@ -18,5 +18,5 @@ export function getExamDetail(id: string) {
 }
 
 export const updateExam = (data: any) => {
-  return http.request<any>("get", '/api/exam/update', { data })
+  return http.request<any>("post", '/api/exam/update', { data })
 }
