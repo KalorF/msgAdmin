@@ -30,9 +30,9 @@
       </div>
 
       <div class="flex items-center px-4 mb-4">
-        考试时间：<el-input
+        考试时间：<el-input-number
           v-model="limitTime"
-          style="width: 300px"
+          style="width: 200px"
           placeholder="请输入考试时间"
         />
       </div>
@@ -44,10 +44,7 @@
         <div class="flex items-center">
           <div class="flex items-center">
             <p>{{ index + 1 }}. 题目类型：</p>
-            <el-radio-group
-              v-model="item.type"
-              @change="changeType(item, index, $event)"
-            >
+            <el-radio-group v-model="item.type" @change="changeType(item)">
               <el-radio value="select">选择题</el-radio>
               <el-radio value="multiSelect">多选题</el-radio>
               <el-radio value="checked">判断题</el-radio>
@@ -69,9 +66,10 @@
           </div>
           <div class="flex items-center">
             分数：
-            <el-input
+            <el-input-number
+              :min="1"
               v-model="item.body.score"
-              style="width: 300px"
+              style="width: 150px"
               placeholder="请输入分数"
             />
           </div>
@@ -93,9 +91,11 @@
                   placeholder="请输入选项"
                 />
                 <el-button
+                  class="ml-3"
+                  size="small"
                   type="danger"
                   @click="removeOption(item, optionIndex)"
-                  icon="el-icon-minus"
+                  :icon="Minus"
                   >删除</el-button
                 >
               </div>
@@ -116,9 +116,11 @@
                   placeholder="请输入答案"
                 />
                 <el-button
+                  class="ml-3"
+                  size="small"
                   type="danger"
                   @click="removeAnswer(item, answerIndex)"
-                  icon="el-icon-minus"
+                  :icon="Minus"
                   >删除</el-button
                 >
               </div>
@@ -130,11 +132,11 @@
             <template v-if="item.type === 'multiSelect'">
               <el-checkbox-group v-model="item.body.answer.value">
                 <el-checkbox
-                  :label="a.value"
+                  :label="a.label"
                   v-for="a in item.body.answer.options"
                   :key="a.value"
-                  >{{ a.label }}</el-checkbox
-                >
+                  :value="a.value"
+                />
               </el-checkbox-group>
             </template>
             <template v-else>
@@ -156,22 +158,30 @@
 
 <script lang="ts" setup>
 import { nextTick, onMounted, ref } from "vue";
-import { ArrowLeft } from "@element-plus/icons-vue";
-import { createExam } from "@/api/exam";
+import { ArrowLeft, Minus } from "@element-plus/icons-vue";
+import { createExam, getExamDetail, updateExam } from "@/api/exam";
 import { ElMessageBox, ElMessage } from "element-plus";
 
 const emits = defineEmits(["back"]);
-
-function guid() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    var r = (Math.random() * 16) | 0,
-      v = c == "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+const props = defineProps<{
+  id?: string;
+}>();
 
 const container = ref<null | HTMLElement>(null);
 const listHeight = ref(0);
+
+const guid = () => {
+  let d = new Date().getTime();
+  const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    function (c) {
+      const r = (d + Math.random() * 16) % 16 | 0;
+      d = Math.floor(d / 16);
+      return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
+    }
+  );
+  return uuid;
+};
 
 const examTmpl = {
   select: {
@@ -241,9 +251,8 @@ const examList = ref([
 const examTitle = ref("");
 const limitTime = ref(90);
 
-const changeType = (item: any, index: number, type: string) => {
-  item.type = type;
-  item.body = JSON.parse(JSON.stringify(examTmpl[type]));
+const changeType = (item: any) => {
+  item.body = JSON.parse(JSON.stringify(examTmpl[item.type]));
 };
 
 const addtopic = (type: string) => {
@@ -260,8 +269,11 @@ const handleDel = (index: number) => {
 };
 
 const addOption = (item: any) => {
-  const lastOptionLabel = item.body.options[item.body.options.length - 1].label;
-  const newOptionLabel = String.fromCharCode(lastOptionLabel.charCodeAt(0) + 1);
+  const lastOptionLabel =
+    item.body.options[item.body.options.length - 1]?.label;
+  const newOptionLabel = lastOptionLabel
+    ? String.fromCharCode(lastOptionLabel.charCodeAt(0) + 1)
+    : "A";
 
   item.body.options.push({ label: newOptionLabel, value: "" });
 
@@ -289,6 +301,101 @@ const removeAnswer = (item: any, index: number) => {
   item.body.answer.splice(index, 1);
 };
 
+const getDetail = () => {
+  getExamDetail(props.id).then(res => {
+    if (res.code === 200) {
+      const data = res.data;
+      examTitle.value = data.title;
+      limitTime.value = data.limitTime;
+      examList.value = [];
+      if (data && data.single_list.length) {
+        data.single_list.forEach((item: any) => {
+          examList.value.push({
+            type: "select",
+            id: item.id,
+            body: {
+              title: item.choices[0].question,
+              score: item.score,
+              options: item.choices.map((choice: any, index: number) => ({
+                label: String.fromCharCode(65 + index),
+                value: choice.question
+              })),
+              answer: {
+                options: item.choices.map((choice: any, index: number) => ({
+                  label: String.fromCharCode(65 + index),
+                  value: String.fromCharCode(65 + index)
+                })),
+                value: String.fromCharCode(65 + item.answer.answer)
+              }
+            }
+          });
+        });
+      }
+      if (data && data.multi_list.length) {
+        data.multi_list.forEach((item: any) => {
+          examList.value.push({
+            type: "multiSelect",
+            id: item.id,
+            body: {
+              title: item.multi_choice[0].question,
+              score: item.score,
+              options: item.multi_choice.map((choice: any, index: number) => ({
+                label: String.fromCharCode(65 + index),
+                value: choice.question
+              })),
+              answer: {
+                options: item.multi_choice.map(
+                  (choice: any, index: number) => ({
+                    label: String.fromCharCode(65 + index),
+                    value: String.fromCharCode(65 + index)
+                  })
+                ),
+                value: item.multi_answer.answers.map((ans: number) =>
+                  String.fromCharCode(65 + ans)
+                )
+              }
+            }
+          });
+        });
+      }
+      if (data && data.judge_list.length) {
+        data.judge_list.forEach((item: any) => {
+          examList.value.push({
+            type: "checked",
+            id: item.id,
+            body: {
+              title: item.questions[0].question,
+              score: item.score,
+              answer: {
+                options: [
+                  { label: "正确", value: "yes" },
+                  { label: "错误", value: "no" }
+                ],
+                value: item.answer.answers[0] ? "yes" : "no"
+              }
+            }
+          });
+        });
+      }
+      if (data && data.cloze_list.length) {
+        data.cloze_list.forEach((item: any) => {
+          examList.value.push({
+            type: "fillBlank",
+            id: item.id,
+            body: {
+              title: item.question,
+              score: item.score,
+              answer: item.answer.answer.split(", ").map((ans: string) => ({
+                value: ans
+              }))
+            }
+          });
+        });
+      }
+    }
+  });
+};
+
 onMounted(async () => {
   nextTick(async () => {
     const cntel = container.value;
@@ -297,9 +404,12 @@ onMounted(async () => {
       listHeight.value = height - 80;
     }
   });
+  if (props.id) {
+    getDetail();
+  }
 });
 
-const submitExam = async () => {
+const submitExam = () => {
   const formattedData = {
     cloze_list: [],
     judge_list: [],
@@ -313,12 +423,12 @@ const submitExam = async () => {
 
   let singleIdCounter = 1;
   let multiIdCounter = 1;
-
   examList.value.forEach((item, index) => {
     switch (item.type) {
       case "select":
         formattedData.single_list.push({
-          id: singleIdCounter.toString(),
+          // id: guid(),
+          // id: singleIdCounter.toString(),
           answer: { answer: item.body.answer.value.charCodeAt(0) - 64 },
           choices: item.body.options.map(option => ({
             question: option.value
@@ -329,7 +439,8 @@ const submitExam = async () => {
         break;
       case "multiSelect":
         formattedData.multi_list.push({
-          id: multiIdCounter.toString(),
+          // id: guid(),
+          // id: multiIdCounter.toString(),
           multi_answer: {
             answers: item.body.answer.value.map(ans => ans.charCodeAt(0) - 64)
           },
@@ -342,7 +453,8 @@ const submitExam = async () => {
         break;
       case "checked":
         formattedData.judge_list.push({
-          id: (index + 1).toString(),
+          // id: guid(),
+          // id: (index + 1).toString(),
           answer: {
             answers: [item.body.answer.value === "yes" ? true : false]
           },
@@ -352,7 +464,8 @@ const submitExam = async () => {
         break;
       case "fillBlank":
         formattedData.cloze_list.push({
-          id: (index + 1).toString(),
+          // id: guid(),
+          // id: (index + 1).toString(),
           answer: { answer: item.body.answer.map(ans => ans.value).join(", ") },
           question: item.body.title,
           score: parseInt(item.body.score)
@@ -373,7 +486,7 @@ const submitExam = async () => {
       }
     })
     .catch(err => {
-      ElMessage.error(err.msg);
+      ElMessage.error(err?.response?.data?.msg || "添加失败");
     });
 };
 </script>

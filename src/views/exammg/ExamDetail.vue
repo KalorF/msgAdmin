@@ -1,7 +1,9 @@
 <template>
-  <div>
-    <el-button type="primary" @click="goBack">返回</el-button>
-    <h1>{{ examData.title }}</h1>
+  <div class="p-4 bg-white rounded-lg h-[calc(100%-30px)]">
+    <el-button round :icon="ArrowLeft" type="primary" @click="goBack"
+      >返回</el-button
+    >
+    <h1 class="mt-4">{{ examData.title }}</h1>
     <div v-if="examData.limitTime">
       <p>限时：{{ examData.limitTime }} 分钟</p>
     </div>
@@ -57,14 +59,17 @@
       </div>
     </div>
 
-    <el-button type="primary" @click="submitAnswers">提交答案</el-button>
+    <el-button type="primary" class="my-6" round @click="submitAnswers"
+      >提交答案</el-button
+    >
   </div>
 </template>
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { getExamDetail } from "@/api/exam"; // 假设这是你的 API 接口
+import { getExamDetail } from "@/api/exam";
+import { ArrowLeft, Minus } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter(); // 添加这行来正确导入 router
@@ -135,8 +140,8 @@ h1 {
   margin-bottom: 16px;
 }
 h2 {
-  font-size: 20px;
-  margin-top: 24px;
+  font-size: 18px;
+  margin-top: 32px;
 }
 p {
   margin: 8px 0;
