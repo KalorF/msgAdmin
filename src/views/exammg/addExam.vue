@@ -39,7 +39,7 @@
       <div
         class="mb-6 px-4 text-sm"
         v-for="(item, index) in examList"
-        :key="item.id"
+        :key="item.uid"
       >
         <div class="flex items-center">
           <div class="flex items-center">
@@ -240,10 +240,10 @@ const examTmpl = {
   }
 };
 
-const examList = ref([
+const examList = ref<any[]>([
   {
     type: "select",
-    id: guid(),
+    uid: guid(),
     body: JSON.parse(JSON.stringify(examTmpl["select"]))
   }
 ]);
@@ -258,7 +258,7 @@ const changeType = (item: any) => {
 const addtopic = (type: string) => {
   const tmp = {
     type: type,
-    id: guid(),
+    uid: guid(),
     body: JSON.parse(JSON.stringify(examTmpl[type]))
   };
   examList.value.push(tmp);
@@ -312,6 +312,7 @@ const getDetail = () => {
         data.single_list.forEach((item: any) => {
           examList.value.push({
             type: "select",
+            uid: guid(),
             id: item.id,
             body: {
               title: item.base_info.question,
@@ -335,6 +336,7 @@ const getDetail = () => {
         data.multi_list.forEach((item: any) => {
           examList.value.push({
             type: "multiSelect",
+            uid: guid(),
             id: item.id,
             body: {
               title: item.base_info.question,
@@ -362,6 +364,7 @@ const getDetail = () => {
         data.judge_list.forEach((item: any) => {
           examList.value.push({
             type: "checked",
+            uid: guid(),
             id: item.id,
             body: {
               title: item.questions[0].question,
@@ -381,6 +384,7 @@ const getDetail = () => {
         data.cloze_list.forEach((item: any) => {
           examList.value.push({
             type: "fillBlank",
+            uid: guid(),
             id: item.id,
             body: {
               title: item.question,
@@ -424,58 +428,81 @@ const submitExam = () => {
   let singleIdCounter = 1;
   let multiIdCounter = 1;
   examList.value.forEach((item, index) => {
+    const id = item.id;
     switch (item.type) {
       case "select":
-        formattedData.single_list.push({
-          // id: guid(),
-          // id: singleIdCounter.toString(),
-          answer: { answer: item.body.answer.value.charCodeAt(0) - 64 },
-          choices: item.body.options.map(option => ({
-            question: option.value
-          })),
-          score: parseInt(item.body.score),
-          base_info: {
-            question: item.body.title
+        {
+          let data: any = {
+            answer: { answer: item.body.answer.value.charCodeAt(0) - 64 },
+            choices: item.body.options.map(option => ({
+              question: option.value
+            })),
+            score: parseInt(item.body.score),
+            base_info: {
+              question: item.body.title
+            }
+          };
+          if (id) {
+            data.id = id;
           }
-        });
-        singleIdCounter++;
+          formattedData.single_list.push(data);
+          singleIdCounter++;
+        }
         break;
       case "multiSelect":
-        formattedData.multi_list.push({
-          // id: guid(),
-          // id: multiIdCounter.toString(),
-          base_info: {
-            question: item.body.title
-          },
-          multi_answer: {
-            answers: item.body.answer.value.map(ans => ans.charCodeAt(0) - 64)
-          },
-          multi_choice: item.body.options.map(option => ({
-            question: option.value
-          })),
-          score: parseInt(item.body.score)
-        });
-        multiIdCounter++;
+        {
+          let data: any = {
+            base_info: {
+              question: item.body.title
+            },
+            multi_answer: {
+              answers: item.body.answer.value.map(ans => ans.charCodeAt(0) - 64)
+            },
+            multi_choice: item.body.options.map(option => ({
+              question: option.value
+            })),
+            score: parseInt(item.body.score)
+          };
+          if (id) {
+            data.id = id;
+          }
+          formattedData.multi_list.push(data);
+          multiIdCounter++;
+        }
         break;
       case "checked":
-        formattedData.judge_list.push({
-          // id: guid(),
-          // id: (index + 1).toString(),
-          answer: {
-            answers: [item.body.answer.value === "yes" ? true : false]
-          },
-          questions: [{ question: item.body.title }],
-          score: parseInt(item.body.score)
-        });
+        {
+          let data: any = {
+            // id: guid(),
+            // id: (index + 1).toString(),
+            answer: {
+              answers: [item.body.answer.value === "yes" ? true : false]
+            },
+            questions: [{ question: item.body.title }],
+            score: parseInt(item.body.score)
+          };
+          if (id) {
+            data.id = id;
+          }
+          formattedData.judge_list.push(data);
+        }
         break;
       case "fillBlank":
-        formattedData.cloze_list.push({
-          // id: guid(),
-          // id: (index + 1).toString(),
-          answer: { answer: item.body.answer.map(ans => ans.value).join(", ") },
-          question: item.body.title,
-          score: parseInt(item.body.score)
-        });
+        {
+          let data: any = {
+            // id: guid(),
+            // id: (index + 1).toString(),
+            answer: {
+              answer: item.body.answer.map(ans => ans.value).join(", ")
+            },
+            question: item.body.title,
+            score: parseInt(item.body.score)
+          };
+          if (id) {
+            data.id = id;
+          }
+          formattedData.cloze_list.push(data);
+        }
         break;
     }
   });

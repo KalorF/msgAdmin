@@ -21,6 +21,7 @@ const resourceMap = {
 
 const otherMap = {
   exam: ['/exammanger'],
+  myexam: ['/myexam'],
 }
 
 export const usePermissionStore = defineStore({
@@ -53,6 +54,7 @@ export const usePermissionStore = defineStore({
           }
         })
         list.push(...otherMap['exam']);
+        list.push(...otherMap['myexam']);
         this.wholeMenus = this.wholeMenus.filter(v => list.includes(v.path));
       }
       // this.wholeMenus = this.constantMenus.concat(routes);

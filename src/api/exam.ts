@@ -20,3 +20,11 @@ export function getExamDetail(id: string) {
 export const updateExam = (data: any) => {
   return http.request<any>("post", '/api/exam/update', { data })
 }
+
+export const getUserExamList = (data: any) => {
+  return http.request<any>("post", '/api/exam/listUserExamByUidList', { data });
+}
+
+export const createUserExam = (data: any) => {
+  return http.request<any>("post", '/api/exam/createUserExam', { data });
+}

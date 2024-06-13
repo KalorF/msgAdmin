@@ -1,6 +1,6 @@
 <template>
   <div class="p-4 bg-white rounded-lg h-[calc(100%-30px)]">
-    <el-button round :icon="ArrowLeft" type="primary" @click="goBack"
+    <el-button round :icon="ArrowLeft" type="primary" @click="emits('back')"
       >返回</el-button
     >
     <h1 class="mt-4">{{ examData.title }}</h1>
@@ -11,7 +11,7 @@
     <div v-if="examData.single_list.length > 0">
       <h2>单选题</h2>
       <div v-for="(single, index) in examData.single_list" :key="single.id">
-        <p>{{ index + 1 }}. {{ single.choices[0].question }}</p>
+        <p>{{ index + 1 }}. {{ single.base_info.question }}</p>
         <el-radio-group v-model="answers.single[single.id]">
           <el-radio
             v-for="(choice, choiceIndex) in single.choices"
@@ -27,7 +27,7 @@
     <div v-if="examData.multi_list.length > 0">
       <h2>多选题</h2>
       <div v-for="(multi, index) in examData.multi_list" :key="multi.id">
-        <p>{{ index + 1 }}. {{ multi.multi_choice[0].question }}</p>
+        <p>{{ index + 1 }}. {{ multi.base_info.question }}</p>
         <el-checkbox-group v-model="answers.multi[multi.id]">
           <el-checkbox
             v-for="(choice, choiceIndex) in multi.multi_choice"
@@ -64,15 +64,22 @@
     >
   </div>
 </template>
-<script setup>
+<script lang="ts" setup>
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { getExamDetail } from "@/api/exam";
+import { getExamDetail, createUserExam } from "@/api/exam";
 import { ArrowLeft, Minus } from "@element-plus/icons-vue";
+import { useUserStoreHook } from "@/store/modules/user";
 
-const route = useRoute();
-const router = useRouter(); // 添加这行来正确导入 router
+const emits = defineEmits(["back"]);
+const props = defineProps<{
+  id?: string;
+}>();
+
+const userStore = useUserStoreHook();
+const cloneExamData = ref({});
+
 const examData = ref({
   title: "",
   limitTime: 0,
@@ -94,6 +101,7 @@ const fetchExamDetail = async id => {
     const res = await getExamDetail(id);
     if (res.code === 200) {
       examData.value = res.data;
+      cloneExamData.value = res.data;
       initializeAnswers();
     } else {
       throw new Error(res.msg);
@@ -120,17 +128,31 @@ const initializeAnswers = () => {
 };
 
 const submitAnswers = () => {
-  console.log("提交答案:", answers.value);
-  // 提交答案的逻辑
-};
-
-const goBack = () => {
-  router.go(-1); // 返回上一页
+  const answerData = {
+    ...answers.value.single,
+    ...answers.value.multi,
+    ...answers.value.judge,
+    ...answers.value.cloze
+  };
+  createUserExam({
+    exam_id: props.id,
+    exam: cloneExamData.value,
+    uid: userStore.userInfo.id,
+    answer_exam: answerData
+  })
+    .then(res => {
+      if (res.code === 200) {
+        ElMessage.success("提交成功");
+        emits("back");
+      } else {
+        ElMessage.error("提交失败");
+      }
+    })
+    .catch(err => err?.response?.data?.msg || "提交失败");
 };
 
 onMounted(() => {
-  const id = route.params.id;
-  fetchExamDetail(id);
+  fetchExamDetail(props.id);
 });
 </script>
 
