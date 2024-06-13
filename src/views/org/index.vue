@@ -248,7 +248,9 @@ const handleAlloc = async (item: any) => {
   // }
   const findItem = allStaffList.value.find(i => i.staff_id === item.id);
   if (findItem) {
-    poolSelect.value = +findItem.allocation_pool_id;
+    poolSelect.value = findItem.allocation_pool_id;
+  } else {
+    poolSelect.value = "";
   }
   currentStaff.value = item;
   poolVisible.value = true;

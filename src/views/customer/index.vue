@@ -42,6 +42,7 @@ import * as XLSX from "xlsx";
 import tagPop from "@/components/tagPop/index.vue";
 import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
+import queryViewDialog from "@/components/queryViewDialog/index.vue";
 
 defineOptions({
   name: "customerlist"
@@ -838,6 +839,8 @@ const handleFlowDetail = (item: any) => {
   recordDialog.value = true;
 };
 
+const queryViewDialogShow = ref(false);
+
 onMounted(() => {
   // getData();
   // getTagOptions();
@@ -857,6 +860,15 @@ onMounted(() => {
         <el-radio-button label="已有客户" value="has" />
         <el-radio-button label="被删除客户" value="del" />
       </el-radio-group>
+      <el-button
+        class="ml-4"
+        type="primary"
+        size="small"
+        text
+        bg
+        @click="queryViewDialogShow = true"
+        >配置客户试图查询</el-button
+      >
       <div
         class="ml-auto flex flex-wrap gap-1 relative"
         v-if="activeValue === 'has'"
@@ -1383,6 +1395,10 @@ onMounted(() => {
       :info="currentInfo"
       @close="orgDialogShow = false"
       :title="orgTitle"
+    />
+    <queryViewDialog
+      :show="queryViewDialogShow"
+      @close="queryViewDialogShow = false"
     />
   </div>
 </template>

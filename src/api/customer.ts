@@ -116,3 +116,7 @@ export const customerViewList = () => {
 export const customerView = (data: any) => {
   return http.request<any>('post', '/api/customer/queryview', { data });
 }
+
+export const deleteQueryView = (data: any) => {
+  return http.request<any>('post', '/api/customer/batch_delete_query_view', { data });
+}

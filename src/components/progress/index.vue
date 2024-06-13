@@ -95,7 +95,7 @@ watch(
     @close="emits('close')"
   >
     <el-form class="demo-form-inline">
-      <el-form-item label="客户池">
+      <el-form-item label="客户进度">
         <el-select v-model="select" placeholder="请选择" style="width: 240px">
           <el-option
             v-for="item in options"
