@@ -55,7 +55,12 @@
       <h2>填空题</h2>
       <div v-for="(cloze, index) in examData.cloze_list" :key="cloze.id">
         <p>{{ index + 1 }}. {{ cloze.question }}</p>
-        <el-input v-model="answers.cloze[cloze.id]" placeholder="请输入答案" />
+        <el-input
+          v-for="(item, index) in cloze.answer.answer.split(',')"
+          :key="index"
+          v-model="answers.cloze[cloze.id][index]"
+          placeholder="请输入答案"
+        />
       </div>
     </div>
 
@@ -123,7 +128,7 @@ const initializeAnswers = () => {
     answers.value.judge[judge.id] = null;
   });
   examData.value.cloze_list.forEach(cloze => {
-    answers.value.cloze[cloze.id] = "";
+    answers.value.cloze[cloze.id] = [];
   });
 };
 
@@ -134,11 +139,32 @@ const submitAnswers = () => {
     ...answers.value.judge,
     ...answers.value.cloze
   };
+  const answerDataJson = JSON.parse(JSON.stringify(cloneExamData.value));
+  answerDataJson.single_list.forEach(single => {
+    const id = single.id;
+    const answer = answerData[id];
+    single.answer = { answer: answer };
+  });
+  answerDataJson.multi_list.forEach(multi => {
+    const id = multi.id;
+    const answer = answerData[id];
+    multi.multi_answer = { answers: answer };
+  });
+  answerDataJson.judge_list.forEach(judge => {
+    const id = judge.id;
+    const answer = answerData[id];
+    judge.answer = { answers: [answer] };
+  });
+  answerDataJson.cloze_list.forEach(cloze => {
+    const id = cloze.id;
+    const answer = answerData[id];
+    cloze.answer = { answer: answer.join(",") };
+  });
   createUserExam({
     exam_id: props.id,
     exam: cloneExamData.value,
     uid: userStore.userInfo.id,
-    answer_exam: answerData
+    answer_exam: answerDataJson
   })
     .then(res => {
       if (res.code === 200) {

@@ -493,7 +493,7 @@ const submitExam = () => {
             // id: guid(),
             // id: (index + 1).toString(),
             answer: {
-              answer: item.body.answer.map(ans => ans.value).join(", ")
+              answer: item.body.answer.map(ans => ans.value).join(",")
             },
             question: item.body.title,
             score: parseInt(item.body.score)
