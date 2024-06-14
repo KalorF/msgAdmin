@@ -5,6 +5,7 @@ import { constantMenus } from "@/router";
 import { useMultiTagsStoreHook } from "./multiTags";
 import { debounce, getKeyList } from "@pureadmin/utils";
 import { ascending, filterTree, filterNoPermissionTree } from "@/router/utils";
+import { ref } from 'vue';
 
 const resourceMap = {
   SimpleBI: ['/'],
@@ -16,7 +17,9 @@ const resourceMap = {
   BankManager: ['/bank'],
   CourseManager: ['/course'],
   SimpleCourse: ['/study'],
-  ProgressManager: ['/progress_set']
+  ProgressManager: ['/progress_set'],
+  ResourceSimpleExam: ['/myexam'],
+  ResourceExamManager: ['/exammanger']
 };
 
 const otherMap = {
@@ -53,8 +56,8 @@ export const usePermissionStore = defineStore({
             list.push(...resourceMap[item]);
           }
         })
-        list.push(...otherMap['exam']);
-        list.push(...otherMap['myexam']);
+        // list.push(...otherMap['exam']);
+        // list.push(...otherMap['myexam']);
         this.wholeMenus = this.wholeMenus.filter(v => list.includes(v.path));
       }
       // this.wholeMenus = this.constantMenus.concat(routes);
@@ -97,4 +100,13 @@ export const usePermissionStore = defineStore({
 
 export function usePermissionStoreHook() {
   return usePermissionStore(store);
+}
+
+export function usePermissionActionStroe() {
+  const store = usePermissionStoreHook();
+  if (store.policies && store.policies.actions) {
+    return ref(store.policies.actions.map((item: any) => item.name))
+  } else {
+    return ref([]);
+  }
 }

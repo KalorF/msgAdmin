@@ -9,16 +9,19 @@ import {
   postAccountUpdateStaffPwd
 } from "@/api/account";
 import { getAllOrg } from "@/api/organization";
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
 import policyDialog from "@/components/policy/index.vue";
+import { usePermissionActionStroe } from "@/store/modules/permission";
 
 defineOptions({
   name: "accountlist"
 });
 
 const orgList = ref([]);
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const getallOrgData = () => {
   return getAllOrg().then(res => {
@@ -298,6 +301,7 @@ onMounted(() => {
         </el-form-item>
       </el-form>
       <el-button
+        v-if="actions.includes('CreateAccount')"
         class="ml-auto mb-5"
         type="default"
         @click="dialogVisible = true"
@@ -322,7 +326,7 @@ onMounted(() => {
             @click="handleUnlock(scope.rwo)"
             type="warning"
             link
-            v-if="scope.row.is_lock"
+            v-if="scope.row.is_lock && actions.includes('UpdateAccount')"
             >解锁</el-button
           >
         </template>
@@ -335,6 +339,7 @@ onMounted(() => {
       <el-table-column label="权限" align="center">
         <template #default="scope">
           <el-button
+            v-if="actions.includes('UpdateAccount')"
             size="small"
             text
             type="primary"
@@ -346,6 +351,7 @@ onMounted(() => {
       <el-table-column label="操作" width="240">
         <template #default="scope">
           <el-button
+            v-if="actions.includes('UpdateAccount')"
             size="small"
             text
             bg
@@ -353,25 +359,28 @@ onMounted(() => {
             @click="handleEdit(scope.row)"
             >修改信息</el-button
           >
+          <template v-if="actions.includes('DeleteAccount')">
+            <el-button
+              v-if="!scope.row.is_deleted"
+              size="small"
+              text
+              bg
+              type="danger"
+              @click="handledel(scope.row.id)"
+              >删除</el-button
+            >
+            <el-button
+              v-else
+              size="small"
+              text
+              bg
+              type="success"
+              @click="handdleRecover(scope.row.id)"
+              >恢复</el-button
+            >
+          </template>
           <el-button
-            v-if="!scope.row.is_deleted"
-            size="small"
-            text
-            bg
-            type="danger"
-            @click="handledel(scope.row.id)"
-            >删除</el-button
-          >
-          <el-button
-            v-else
-            size="small"
-            text
-            bg
-            type="success"
-            @click="handdleRecover(scope.row.id)"
-            >恢复</el-button
-          >
-          <el-button
+            v-if="actions.includes('UpdateAccount')"
             size="small"
             text
             type="success"

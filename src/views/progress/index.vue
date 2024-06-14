@@ -1,9 +1,13 @@
 <script lang="ts" setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { upsertProgress, progressList } from "@/api/progress";
 import { message } from "@/utils/message";
 import { Delete, Edit } from "@element-plus/icons-vue";
 import { ElMessageBox } from "element-plus";
+import { usePermissionActionStroe } from "@/store/modules/permission";
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const visiable = ref(false);
 const progressVal = ref("");
@@ -96,7 +100,10 @@ onMounted(() => {
   <div class="p-4 py-1 pt-3 bg-white rounded-lg !h-[calc(100%-30px)]">
     <div class="font-semibold pl-2 rounded flex items-center">
       进度设置
-      <el-button class="ml-auto" @click="visiable = true"
+      <el-button
+        v-if="actions.includes('CreateProgress')"
+        class="ml-auto"
+        @click="visiable = true"
         >添加进度设置</el-button
       >
     </div>
@@ -109,10 +116,16 @@ onMounted(() => {
       >
         {{ item.name }}
         <div class="ml-auto flex items-center cursor-pointer">
-          <el-icon class="hover:text-stone-500" @click="handleEdit(item)"
+          <el-icon
+            v-if="actions.includes('UpdateProgress')"
+            class="hover:text-stone-500"
+            @click="handleEdit(item)"
             ><Edit
           /></el-icon>
-          <el-icon class="ml-2 hover:text-stone-500" @click="handleDel(item)"
+          <el-icon
+            v-if="actions.includes('DeleteProgress')"
+            class="ml-2 hover:text-stone-500"
+            @click="handleDel(item)"
             ><Delete
           /></el-icon>
         </div>

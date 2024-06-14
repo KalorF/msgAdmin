@@ -23,6 +23,8 @@ import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
 import policyDialog from "@/components/policy/index.vue";
 import { getUserChapterList } from "@/api/chapter";
+import examDialog from "@/components/examDialog/index.vue";
+import { usePermissionActionStroe } from "@/store/modules/permission";
 
 const orgList = ref([]);
 const myorg = ref();
@@ -37,6 +39,9 @@ const currentPage = ref(1);
 const total = ref(0);
 const pool = ref([]);
 const allStaffList = ref([]);
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const getpoolListPost = () => {
   getpoolList()
@@ -347,6 +352,13 @@ const progressformat = (prg: any) => {
   const percentage = +(prg * 100).toFixed(0);
   return percentage === 100 ? "100%" : (`${percentage}%` as any);
 };
+
+const showExamDialog = ref(false);
+
+const handleViewExam = (item: any) => {
+  currentInfo.value = item;
+  showExamDialog.value = true;
+};
 </script>
 
 <template>
@@ -354,7 +366,12 @@ const progressformat = (prg: any) => {
     <div
       class="w-[260px] h-full border-r border-r-slate-100 flex flex-col gap-2 pr-2"
     >
-      <el-button type="primary" bg text @click="dialogVisiable = true"
+      <el-button
+        v-if="actions.includes('CreateOrganization')"
+        type="primary"
+        bg
+        text
+        @click="dialogVisiable = true"
         >创建组织</el-button
       >
       <div
@@ -367,6 +384,7 @@ const progressformat = (prg: any) => {
         {{ item.name }}
         <div class="ml-auto flex">
           <svg
+            v-if="actions.includes('UpdateOrganization')"
             @click.stop="handleEdit(item)"
             class="w-4 h-4 mr-2 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
@@ -383,6 +401,7 @@ const progressformat = (prg: any) => {
             ></path>
           </svg>
           <svg
+            v-if="actions.includes('DeleteOrganization')"
             @click.stop="handleDel(item.id)"
             class="w-4 h-4 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
@@ -403,6 +422,7 @@ const progressformat = (prg: any) => {
           >组织成员</span
         >
         <el-button
+          v-if="actions.includes('UpdateOrganization')"
           type="default"
           class="w-[100px] ml-auto"
           @click="dialogSearch = true"
@@ -426,6 +446,13 @@ const progressformat = (prg: any) => {
             >
           </template>
         </el-table-column>
+        <el-table-column label="考试情况">
+          <template #default="scope">
+            <el-button size="small" @click="handleViewExam(scope.row)"
+              >查看</el-button
+            >
+          </template>
+        </el-table-column>
         <el-table-column label="创建时间">
           <template #default="scope">
             {{ dayjs(+scope.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
@@ -433,10 +460,20 @@ const progressformat = (prg: any) => {
         </el-table-column>
         <el-table-column label="操作">
           <template #default="scope">
-            <el-button link type="primary" @click="handleEditAuth(scope.row)">
+            <el-button
+              link
+              type="primary"
+              v-if="actions.includes('UpdateAccount')"
+              @click="handleEditAuth(scope.row)"
+            >
               编辑权限</el-button
             >
-            <el-button link type="info" @click="handleAlloc(scope.row)">
+            <el-button
+              v-if="actions.includes('CreateCustomerAction')"
+              link
+              type="info"
+              @click="handleAlloc(scope.row)"
+            >
               分配客户</el-button
             >
           </template>
@@ -626,6 +663,11 @@ const progressformat = (prg: any) => {
       :show="policyShow"
       :info="currentInfo"
       @close="policyShow = false"
+    />
+    <examDialog
+      :info="currentInfo"
+      :show="showExamDialog"
+      @close="showExamDialog = false"
     />
   </div>
 </template>

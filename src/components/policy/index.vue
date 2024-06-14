@@ -25,7 +25,9 @@ const resourceMap = {
   BankManager: "银行卡白名单",
   CourseManager: "课程管理",
   SimpleCourse: "我的学习",
-  ProgressManager: "进度设置管理"
+  ProgressManager: "进度设置管理",
+  ResourceSimpleExam: "我的考试",
+  ResourceExamManager: "考试系统"
 };
 
 const actionMap = {
@@ -34,7 +36,6 @@ const actionMap = {
   DeleteAccount: "删除账号",
   CreateOrganization: "创建组织",
   UpdateOrganization: "编辑组织",
-  DeleteGroup: "删除组织",
   DeleteOrganization: "删除组织",
   CreateCourse: "创建课程",
   UpdateCourse: "编辑课程",
@@ -53,14 +54,17 @@ const actionMap = {
   UpdateProgress: "编辑进度配置",
   DeleteProgress: "删除进度配置",
   CreateBank: "创建银行",
-  UpdateBank: "编辑银行",
+  // UpdateBank: "编辑银行",
   DeleteBank: "删除银行",
   CreateBankProject: "创建银行产品",
-  UpdateBankProject: "编辑银行产品",
-  DeleteBankProject: "删除银行产品"
+  // UpdateBankProject: "编辑银行产品",
+  DeleteBankProject: "删除银行产品",
+  ActionCreateExam: "创建考卷",
+  ActionUpdateExam: "更新考卷",
+  ActionDeleteExam: "删除考卷"
 }
 
-const userStore = useUserStore();
+const nav = useNav()
 
 const props = defineProps<{ show?: boolean; info?: any }>();
 const emits = defineEmits(["close", "confirm"]);
@@ -116,8 +120,8 @@ const handleConfirm = () => {
     if (res.code === 200) {
        if (props.info.id === userStroe.userInfo.id) {
           message("设置成功, 登陆后生效", { type: "success" });
-          useNav().logout();
-        }  else {
+          nav.logout();
+        } else {
           message("设置成功", { type: "success" });
         }
       emits("close");
@@ -179,15 +183,15 @@ watch(
     @close="emits('close')"
   >
     <div class="mb-4">
-      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-1"></div>账号角色</p>
+      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-2"></div>账号角色</p>
       <el-radio-group v-model="role">
         <el-radio v-for="item in rolesList" :value="item.value">{{
           item.label
         }}</el-radio>
       </el-radio-group>
     </div>
-    <div class="mb-2">
-      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-1"></div>菜单</p>
+    <div class="mb-4">
+      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-2"></div>菜单</p>
       <el-checkbox-group v-model="resourceCheckList">
         <el-checkbox
           v-for="item in resources"
@@ -198,7 +202,7 @@ watch(
       </el-checkbox-group>
     </div>
     <div class="mb-0">
-      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-1"></div>操作</p>
+      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-2"></div>操作</p>
       <el-checkbox-group v-model="actionCheckList">
         <el-checkbox
           v-for="item in actions"

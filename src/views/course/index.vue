@@ -16,7 +16,8 @@ import {
   onMounted,
   nextTick,
   watch,
-  defineAsyncComponent
+  defineAsyncComponent,
+  computed
 } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
@@ -29,10 +30,14 @@ import {
   Collection
 } from "@element-plus/icons-vue";
 import Axios from "axios";
+import { usePermissionActionStroe } from "@/store/modules/permission";
 
 defineOptions({
   name: "courselist"
 });
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const showParent = ref(true);
 const Chapter = defineAsyncComponent(() => import("./chapter.vue"));
@@ -299,7 +304,10 @@ const onSubmit = () => {
       <el-form :inline="true" :model="formInline" class="demo-form-inline">
         <el-form-item>
           <!-- <el-button type="primary" @click="onSubmit">查询</el-button> -->
-          <el-button type="default" @click="dialogVisiable = true"
+          <el-button
+            v-if="actions.includes('CreateCourse')"
+            type="default"
+            @click="dialogVisiable = true"
             >创建课程分类</el-button
           >
         </el-form-item>
@@ -328,6 +336,7 @@ const onSubmit = () => {
               <p class="text-sm text-zinc-900 flex items-center">
                 <span class="mr-2">{{ item.name }}</span>
                 <svg
+                  v-if="actions.includes('UpdateCourse')"
                   @click.stop="handleEdit(item)"
                   class="ml-auto w-4 h-4 cursor-pointer"
                   xmlns="http://www.w3.org/2000/svg"
@@ -344,6 +353,7 @@ const onSubmit = () => {
                   ></path>
                 </svg>
                 <el-button
+                  v-if="actions.includes('DeleteCourse')"
                   @click.stop="handleDel(item.id)"
                   type="danger"
                   size="small"
@@ -381,7 +391,11 @@ const onSubmit = () => {
         class="border-l-[#F4A460] border-l-4 font-semibold pl-2 rounded flex items-center"
       >
         {{ activeItem.name }}
-        <el-button type="primary" class="ml-auto" @click="uploadDialog = true"
+        <el-button
+          v-if="actions.includes('CreateCourse')"
+          type="primary"
+          class="ml-auto"
+          @click="uploadDialog = true"
           >创建课程</el-button
         >
       </div>
@@ -397,12 +411,14 @@ const onSubmit = () => {
             class="rounded-lg border border-slate-100 w-[260px] h-[200px] shadow-sm flex flex-col relative overflow-hidden hover:border-slate-200 hover:shadow-md transition-all"
           >
             <div
+              v-if="actions.includes('UpdateCourse')"
               @click.stop="handleEditCourse(item)"
               class="absolute top-2 left-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080]"
             >
               <el-icon size="20"><Edit /></el-icon>
             </div>
             <div
+              v-if="actions.includes('DeleteCourse')"
               @click.stop="handleDelCourse(item.id)"
               class="absolute top-2 right-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080]"
             >

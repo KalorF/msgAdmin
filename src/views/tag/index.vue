@@ -9,7 +9,7 @@ import {
   updateGroupTag,
   updateTag
 } from "@/api/tag";
-import { ref, reactive, onMounted, nextTick, watch } from "vue";
+import { ref, reactive, onMounted, nextTick, watch, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 import {
@@ -21,10 +21,14 @@ import {
   Collection
 } from "@element-plus/icons-vue";
 import Axios from "axios";
+import { usePermissionActionStroe } from "@/store/modules/permission";
 
 defineOptions({
   name: "taglist"
 });
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const showParent = ref(true);
 
@@ -295,7 +299,10 @@ const handleUpload = async () => {
       <el-form :inline="true" :model="formInline" class="demo-form-inline">
         <el-form-item>
           <!-- <el-button type="primary" @click="onSubmit">查询</el-button> -->
-          <el-button type="default" @click="dialogVisiable = true"
+          <el-button
+            v-if="actions.includes('CreateTagGroup')"
+            ype="default"
+            @click="dialogVisiable = true"
             >创建标签分类</el-button
           >
         </el-form-item>
@@ -324,6 +331,7 @@ const handleUpload = async () => {
               <p class="text-sm text-zinc-900 flex items-center">
                 <span class="mr-2">{{ item.name }}</span>
                 <svg
+                  v-if="actions.includes('UpdateTagGroup')"
                   @click.stop="handleEdit(item)"
                   class="ml-auto w-4 h-4 cursor-pointer"
                   xmlns="http://www.w3.org/2000/svg"
@@ -340,6 +348,7 @@ const handleUpload = async () => {
                   ></path>
                 </svg>
                 <el-button
+                  v-if="actions.includes('DeleteTagGroup')"
                   @click.stop="handleDel(item.id)"
                   type="danger"
                   size="small"
@@ -377,7 +386,11 @@ const handleUpload = async () => {
         class="border-l-[#F4A460] border-l-4 font-semibold pl-2 rounded flex items-center"
       >
         {{ activeItem.name }}
-        <el-button type="primary" class="ml-auto" @click="uploadDialog = true"
+        <el-button
+          v-if="actions.includes('CreateCustomerTag')"
+          type="primary"
+          class="ml-auto"
+          @click="uploadDialog = true"
           >创建标签</el-button
         >
       </div>
@@ -418,12 +431,14 @@ const handleUpload = async () => {
             <div class="mt-2 px-3 text-zinc-700">{{ item.name }}</div>
             <div class="mt-2 flex justify-end cursor-pointer pr-3">
               <el-icon
+                v-if="actions.includes('UpdateCustomerTag')"
                 size="16"
                 class="!text-neutral-700 hover:!text-neutral-500"
                 @click.stop="handleEditCourse(item)"
                 ><Edit
               /></el-icon>
               <el-icon
+                v-if="actions.includes('DeleteCustomerTag')"
                 size="16"
                 class="ml-2 !text-red-400 hover:!text-red-300"
                 @click.stop="handleDelCourse(item.id)"

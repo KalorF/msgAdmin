@@ -58,10 +58,14 @@ import tagPop from "@/components/tagPop/index.vue";
 import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
 import progressDialog from "@/components/progress/index.vue";
+import { usePermissionActionStroe } from "@/store/modules/permission";
 
 defineOptions({
   name: "customerlist2"
 });
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const userStore = useUserStoreHook();
 
@@ -946,6 +950,7 @@ onMounted(async () => {
         <template #default="props">
           <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
             <el-icon
+              v-if="actions.includes('UpdateCustomerAction')"
               @click="handleEditTag(props.row)"
               class="!text-zinc-600 hover:!text-zinc-400"
               :size="18"
@@ -990,7 +995,10 @@ onMounted(async () => {
               <el-dropdown-item :icon="Cellphone" @click="handleCall(props.row)"
                 >拨打电话</el-dropdown-item
               >
-              <el-dropdown-item :icon="Edit" @click="handleProgress(props.row)"
+              <el-dropdown-item
+                v-if="actions.includes('UpdateCustomerAction')"
+                :icon="Edit"
+                @click="handleProgress(props.row)"
                 >修改进度</el-dropdown-item
               >
               <el-dropdown-item
@@ -998,10 +1006,16 @@ onMounted(async () => {
                 @click="handleFlowDetail(props.row)"
                 >操作记录</el-dropdown-item
               >
-              <el-dropdown-item :icon="Sort" @click="handleTran(props.row)"
+              <el-dropdown-item
+                v-if="actions.includes('UpdateCustomerAction')"
+                :icon="Sort"
+                @click="handleTran(props.row)"
                 >转让客户</el-dropdown-item
               >
-              <el-dropdown-item :icon="Share" @click="handleShare(props.row)"
+              <el-dropdown-item
+                v-if="actions.includes('UpdateCustomerAction')"
+                :icon="Share"
+                @click="handleShare(props.row)"
                 >分享客户</el-dropdown-item
               >
             </el-dropdown-menu>

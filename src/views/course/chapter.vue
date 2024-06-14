@@ -14,12 +14,16 @@ import {
   VideoPlay
 } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { ref, nextTick, onMounted } from "vue";
+import { ref, nextTick, onMounted, computed } from "vue";
 import Axios from "axios";
 import PDF from "pdf-vue3";
 // import VuePdfApp from "vue3-pdf-app";
 // import "vue3-pdf-app/dist/icons/main.css";
 import dayjs from "dayjs";
+import { usePermissionActionStroe } from "@/store/modules/permission";
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const emits = defineEmits(["back"]);
 
@@ -236,7 +240,12 @@ onMounted(() => {
   >
     <div class="flex w-full justify-between">
       <el-button round :icon="ArrowLeft" @click="emits('back')">返回</el-button>
-      <el-button round type="primary" class="mr-4" @click="uploadDialog = true"
+      <el-button
+        v-if="actions.includes('CreateCourse')"
+        round
+        type="primary"
+        class="mr-4"
+        @click="uploadDialog = true"
         >创建章节</el-button
       >
     </div>
@@ -252,12 +261,14 @@ onMounted(() => {
         class="rounded-lg border mb-4 mr-4 border-slate-100 w-[260px] h-[210px] shadow-sm flex flex-col relative overflow-hidden hover:border-slate-200 hover:shadow-md transition-all"
       >
         <div
+          v-if="actions.includes('UpdateCourse')"
           @click.stop="handleEdit(item)"
           class="absolute top-2 left-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080] z-10"
         >
           <el-icon size="20"><Edit /></el-icon>
         </div>
         <div
+          v-if="actions.includes('DeleteCourse')"
           @click.stop="handleDel(item.id)"
           class="absolute top-2 right-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080] z-10"
         >

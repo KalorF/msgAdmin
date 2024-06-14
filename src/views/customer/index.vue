@@ -43,10 +43,14 @@ import tagPop from "@/components/tagPop/index.vue";
 import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
 import queryViewDialog from "@/components/queryViewDialog/index.vue";
+import { usePermissionActionStroe } from "@/store/modules/permission";
 
 defineOptions({
   name: "customerlist"
 });
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const userStore = useUserStoreHook();
 
@@ -861,6 +865,7 @@ onMounted(() => {
         <el-radio-button label="被删除客户" value="del" />
       </el-radio-group>
       <el-button
+        v-if="actions.includes('CreateCustomerAction')"
         class="ml-4"
         type="primary"
         size="small"
@@ -873,15 +878,24 @@ onMounted(() => {
         class="ml-auto flex flex-wrap gap-1 relative"
         v-if="activeValue === 'has'"
       >
-        <el-button class="" type="default" @click="dialogVisible = true"
+        <el-button
+          v-if="actions.includes('CreateCustomerAction')"
+          class=""
+          type="default"
+          @click="dialogVisible = true"
           >添加客户</el-button
         >
         <div class="relative">
-          <el-button class="ml-auto" type="default" @click="handleMul"
+          <el-button
+            v-if="actions.includes('CreateCustomerAction')"
+            class="ml-auto"
+            type="default"
+            @click="handleMul"
             >批量导入</el-button
           >
         </div>
         <a
+          v-if="actions.includes('CreateCustomerAction')"
           class="absolute top-9 right-4 text-sm text-sky-500 underline hover:text-cyan-700"
           href="https://abynn.oss-cn-shenzhen.aliyuncs.com/%E6%89%B9%E9%87%8F%E5%AE%A2%E6%88%B7-1715698399574.xlsx"
           download="模版文件.xlsx"
@@ -973,6 +987,7 @@ onMounted(() => {
           <template #default="props">
             <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
               <el-icon
+                v-if="actions.includes('UpdateCustomerAction')"
                 @click="handleEditTag(props.row)"
                 class="!text-zinc-600 hover:!text-zinc-400"
                 :size="18"
@@ -1004,7 +1019,10 @@ onMounted(() => {
             <el-icon :size="20"><More /></el-icon>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item :icon="Edit" @click="handleEdit(props.row)"
+                <el-dropdown-item
+                  v-if="actions.includes('UpdateCustomerAction')"
+                  :icon="Edit"
+                  @click="handleEdit(props.row)"
                   >编辑</el-dropdown-item
                 >
                 <el-dropdown-item
@@ -1012,13 +1030,22 @@ onMounted(() => {
                   @click="handleFlowDetail(props.row)"
                   >操作记录</el-dropdown-item
                 >
-                <el-dropdown-item :icon="Sort" @click="handleTran(props.row)"
+                <el-dropdown-item
+                  v-if="actions.includes('UpdateCustomerAction')"
+                  :icon="Sort"
+                  @click="handleTran(props.row)"
                   >转让客户</el-dropdown-item
                 >
-                <el-dropdown-item :icon="Share" @click="handleShare(props.row)"
+                <el-dropdown-item
+                  v-if="actions.includes('UpdateCustomerAction')"
+                  :icon="Share"
+                  @click="handleShare(props.row)"
                   >分享客户</el-dropdown-item
                 >
-                <el-dropdown-item :icon="Delete" @click="handleDel(props.row)"
+                <el-dropdown-item
+                  v-if="actions.includes('DeleteCustomerAction')"
+                  :icon="Delete"
+                  @click="handleDel(props.row)"
                   >删除</el-dropdown-item
                 >
               </el-dropdown-menu>

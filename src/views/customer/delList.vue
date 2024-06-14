@@ -14,13 +14,17 @@ import { getAllTags, getAllGroupTag } from "@/api/tag";
 import { message } from "@/utils/message";
 import { ref, reactive } from "vue";
 import { Avatar } from "@element-plus/icons-vue";
-import { onMounted, nextTick } from "vue";
+import { onMounted, nextTick, computed } from "vue";
 import { ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
+import { usePermissionActionStroe } from "@/store/modules/permission";
 
 defineOptions({
   name: "customerlist2"
 });
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const formInline = reactive({
   user: "",
@@ -391,7 +395,11 @@ onMounted(() => {
       </template>
     </el-table-column>
     <el-table-column label="操作" #default="props">
-      <el-button link type="success" @click="handlecover(props.row)"
+      <el-button
+        v-if="actions.includes('DeleteCustomerAction')"
+        link
+        type="success"
+        @click="handlecover(props.row)"
         >恢复</el-button
       >
       <!-- <el-button link type="danger" @click="handleDel(props.row)"

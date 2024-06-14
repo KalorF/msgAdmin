@@ -36,6 +36,11 @@ import {
   Sort
 } from "@element-plus/icons-vue";
 
+import { usePermissionActionStroe } from "@/store/modules/permission";
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
+
 const orgList = ref([]);
 const myorg = ref();
 const dialogVisiable = ref(false);
@@ -381,7 +386,12 @@ const handleChangeCustomerPage = (val: number) => {
     <div
       class="w-[260px] h-full border-r border-r-slate-100 flex flex-col gap-2 pr-2"
     >
-      <el-button type="primary" bg text @click="dialogVisiable = true"
+      <el-button
+        v-if="actions.includes('CreateCustomerAction')"
+        type="primary"
+        bg
+        text
+        @click="dialogVisiable = true"
         >创建客户池</el-button
       >
       <div
@@ -394,6 +404,7 @@ const handleChangeCustomerPage = (val: number) => {
         {{ item.name }}
         <div class="ml-auto flex">
           <svg
+            v-if="actions.includes('CreateCustomerAction')"
             @click.stop="handleEdit(item)"
             class="w-4 h-4 mr-2 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
@@ -410,6 +421,7 @@ const handleChangeCustomerPage = (val: number) => {
             ></path>
           </svg>
           <svg
+            v-if="actions.includes('CreateCustomerAction')"
             @click.stop="handleDel(item.id)"
             class="w-4 h-4 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
@@ -436,7 +448,11 @@ const handleChangeCustomerPage = (val: number) => {
           @click="handleViewCustomer"
           >客户池客户</el-button
         >
-        <el-button type="default" class="w-[100px]" @click="handleSetRule"
+        <el-button
+          v-if="actions.includes('CreateAllocationConfig')"
+          type="default"
+          class="w-[100px]"
+          @click="handleSetRule"
           >设置领取规则</el-button
         >
       </div>
@@ -459,7 +475,12 @@ const handleChangeCustomerPage = (val: number) => {
         </el-table-column>
         <el-table-column label="操作">
           <template #default="scope">
-            <el-button link type="danger" @click="handleDelFromPool(scope.row)">
+            <el-button
+              v-if="actions.includes('CreateCustomerAction')"
+              link
+              type="danger"
+              @click="handleDelFromPool(scope.row)"
+            >
               移除</el-button
             >
           </template>
@@ -467,6 +488,7 @@ const handleChangeCustomerPage = (val: number) => {
       </el-table>
       <div class="mt-2 flex justify-between">
         <el-button
+          v-if="actions.includes('CreateCustomerAction')"
           type="primary"
           @click="hanldeMulDel"
           :disabled="!selMulIds.length"
