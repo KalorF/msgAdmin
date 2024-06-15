@@ -9,13 +9,17 @@ import {
 } from "@/api/bank";
 import { message } from "@/utils/message";
 import { ElMessageBox } from "element-plus";
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
+import { usePermissionActionStroe } from "@/store/modules/permission";
 
 defineOptions({
   name: "banklist"
 });
+
+const permission = usePermissionActionStroe();
+const actions = computed(() => permission.value);
 
 const currentPage = ref(1);
 const pageSize = ref(10);
@@ -337,15 +341,24 @@ onMounted(() => {
         <el-button @click="projectTableShow = true" class="mr-[-8px]"
           >银行产品</el-button
         >
-        <el-button class="" type="default" @click="dialogVisible = true"
+        <el-button
+          v-if="actions.includes('CreateBank')"
+          class=""
+          type="default"
+          @click="dialogVisible = true"
           >添加银行</el-button
         >
         <div class="relative">
-          <el-button class="ml-auto" type="default" @click="handleMul"
+          <el-button
+            v-if="actions.includes('CreateBank')"
+            class="ml-auto"
+            type="default"
+            @click="handleMul"
             >批量导入</el-button
           >
         </div>
         <a
+          v-if="actions.includes('CreateBank')"
           class="absolute top-9 right-4 text-sm text-sky-500 underline hover:text-cyan-700"
           href="https://abynn.oss-cn-shenzhen.aliyuncs.com/%E6%89%B9%E9%87%8F%E9%93%B6%E8%A1%8C-1716470970466.xlsx"
           download="模版文件.xlsx"
@@ -421,14 +434,23 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="操作">
         <template #default="props">
-          <el-button link type="danger" @click="handleDel(props.row.id)"
+          <el-button
+            v-if="actions.includes('DeleteBank')"
+            link
+            type="danger"
+            @click="handleDel(props.row.id)"
             >删除</el-button
           >
         </template>
       </el-table-column>
     </el-table>
     <div class="mt-4 flex justify-between">
-      <el-button type="primary" @click="handleMulDel">批量删除</el-button>
+      <el-button
+        v-if="actions.includes('DeleteBank')"
+        type="primary"
+        @click="handleMulDel"
+        >批量删除</el-button
+      >
       <el-pagination
         class="flex-wrap gap-y-2"
         v-model:current-page="currentPage"
@@ -470,7 +492,12 @@ onMounted(() => {
               :value="item.id"
             />
           </el-select>
-          <el-button size="small" class="ml-2" @click="projectVisiable = true">
+          <el-button
+            v-if="actions.includes('CreateBankProject')"
+            size="small"
+            class="ml-2"
+            @click="projectVisiable = true"
+          >
             添加产品
           </el-button>
         </el-form-item>
@@ -515,10 +542,18 @@ onMounted(() => {
     </el-dialog>
 
     <el-dialog v-model="projectTableShow" :title="'银行产品'" width="500">
-      <el-button @click="projectVisiable = true" size="small" class="mb-2"
+      <el-button
+        v-if="actions.includes('CreateBankProject')"
+        @click="projectVisiable = true"
+        size="small"
+        class="mb-2"
         >添加产品</el-button
       >
-      <el-button @click="handleMulDel2" size="small" class="mb-2"
+      <el-button
+        v-if="actions.includes('DeleteBankProject')"
+        @click="handleMulDel2"
+        size="small"
+        class="mb-2"
         >批量删除</el-button
       >
       <el-table
@@ -544,6 +579,7 @@ onMounted(() => {
         <el-table-column label="操作">
           <template #default="props">
             <el-button
+              v-if="actions.includes('DeleteBankProject')"
               link
               type="danger"
               @click="handleDelProject(props.row.id)"

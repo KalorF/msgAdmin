@@ -39,7 +39,7 @@
       <div
         class="mb-6 px-4 text-sm"
         v-for="(item, index) in examList"
-        :key="item.id"
+        :key="item.uid"
       >
         <div class="flex items-center">
           <div class="flex items-center">
@@ -240,10 +240,10 @@ const examTmpl = {
   }
 };
 
-const examList = ref([
+const examList = ref<any[]>([
   {
     type: "select",
-    id: guid(),
+    uid: guid(),
     body: JSON.parse(JSON.stringify(examTmpl["select"]))
   }
 ]);
@@ -258,7 +258,7 @@ const changeType = (item: any) => {
 const addtopic = (type: string) => {
   const tmp = {
     type: type,
-    id: guid(),
+    uid: guid(),
     body: JSON.parse(JSON.stringify(examTmpl[type]))
   };
   examList.value.push(tmp);
@@ -312,9 +312,10 @@ const getDetail = () => {
         data.single_list.forEach((item: any) => {
           examList.value.push({
             type: "select",
+            uid: guid(),
             id: item.id,
             body: {
-              title: item.choices[0].question,
+              title: item.base_info.question,
               score: item.score,
               options: item.choices.map((choice: any, index: number) => ({
                 label: String.fromCharCode(65 + index),
@@ -335,9 +336,10 @@ const getDetail = () => {
         data.multi_list.forEach((item: any) => {
           examList.value.push({
             type: "multiSelect",
+            uid: guid(),
             id: item.id,
             body: {
-              title: item.multi_choice[0].question,
+              title: item.base_info.question,
               score: item.score,
               options: item.multi_choice.map((choice: any, index: number) => ({
                 label: String.fromCharCode(65 + index),
@@ -362,6 +364,7 @@ const getDetail = () => {
         data.judge_list.forEach((item: any) => {
           examList.value.push({
             type: "checked",
+            uid: guid(),
             id: item.id,
             body: {
               title: item.questions[0].question,
@@ -371,7 +374,7 @@ const getDetail = () => {
                   { label: "正确", value: "yes" },
                   { label: "错误", value: "no" }
                 ],
-                value: item.answer.answers[0] ? "yes" : "no"
+                value: item.answer.Answers[0] ? "yes" : "no"
               }
             }
           });
@@ -381,6 +384,7 @@ const getDetail = () => {
         data.cloze_list.forEach((item: any) => {
           examList.value.push({
             type: "fillBlank",
+            uid: guid(),
             id: item.id,
             body: {
               title: item.question,
@@ -424,69 +428,105 @@ const submitExam = () => {
   let singleIdCounter = 1;
   let multiIdCounter = 1;
   examList.value.forEach((item, index) => {
+    const id = item.id;
     switch (item.type) {
       case "select":
-        formattedData.single_list.push({
-          // id: guid(),
-          // id: singleIdCounter.toString(),
-          answer: { answer: item.body.answer.value.charCodeAt(0) - 64 },
-          choices: item.body.options.map(option => ({
-            question: option.value
-          })),
-          score: parseInt(item.body.score)
-        });
-        singleIdCounter++;
+        {
+          let data: any = {
+            answer: { answer: item.body.answer.value.charCodeAt(0) - 64 },
+            choices: item.body.options.map(option => ({
+              question: option.value
+            })),
+            score: parseInt(item.body.score),
+            base_info: {
+              question: item.body.title
+            }
+          };
+          if (id) {
+            data.id = id;
+          }
+          formattedData.single_list.push(data);
+          singleIdCounter++;
+        }
         break;
       case "multiSelect":
-        formattedData.multi_list.push({
-          // id: guid(),
-          // id: multiIdCounter.toString(),
-          multi_answer: {
-            answers: item.body.answer.value.map(ans => ans.charCodeAt(0) - 64)
-          },
-          multi_choice: item.body.options.map(option => ({
-            question: option.value
-          })),
-          score: parseInt(item.body.score)
-        });
-        multiIdCounter++;
+        {
+          let data: any = {
+            base_info: {
+              question: item.body.title
+            },
+            multi_answer: {
+              answers: item.body.answer.value.map(ans => ans.charCodeAt(0) - 64)
+            },
+            multi_choice: item.body.options.map(option => ({
+              question: option.value
+            })),
+            score: parseInt(item.body.score)
+          };
+          if (id) {
+            data.id = id;
+          }
+          formattedData.multi_list.push(data);
+          multiIdCounter++;
+        }
         break;
       case "checked":
-        formattedData.judge_list.push({
-          // id: guid(),
-          // id: (index + 1).toString(),
-          answer: {
-            answers: [item.body.answer.value === "yes" ? true : false]
-          },
-          questions: [{ question: item.body.title }],
-          score: parseInt(item.body.score)
-        });
+        {
+          let data: any = {
+            // id: guid(),
+            // id: (index + 1).toString(),
+            answer: {
+              answers: [item.body.answer.value === "yes" ? true : false]
+            },
+            questions: [{ question: item.body.title }],
+            score: parseInt(item.body.score)
+          };
+          if (id) {
+            data.id = id;
+          }
+          formattedData.judge_list.push(data);
+        }
         break;
       case "fillBlank":
-        formattedData.cloze_list.push({
-          // id: guid(),
-          // id: (index + 1).toString(),
-          answer: { answer: item.body.answer.map(ans => ans.value).join(", ") },
-          question: item.body.title,
-          score: parseInt(item.body.score)
-        });
+        {
+          let data: any = {
+            // id: guid(),
+            // id: (index + 1).toString(),
+            answer: {
+              answer: item.body.answer.map(ans => ans.value).join(",")
+            },
+            question: item.body.title,
+            score: parseInt(item.body.score)
+          };
+          if (id) {
+            data.id = id;
+          }
+          formattedData.cloze_list.push(data);
+        }
         break;
     }
   });
 
+  if (props.id) {
+    formattedData.id = props.id;
+  }
+
   const data = JSON.stringify(formattedData);
   console.log("格式化后的数据:", data);
-  createExam(data)
+  const func = props.id ? updateExam : createExam;
+  func(data)
     .then(res => {
       if (res.code === 200) {
-        ElMessage.success("试卷添加成功");
+        ElMessage.success(props.id ? "试卷编辑成功" : "试卷添加成功");
         emits("back");
       } else {
-        ElMessage.error("添加失败");
+        ElMessage.error(props.id ? "试卷编辑失败" : "添加失败");
       }
     })
     .catch(err => {
-      ElMessage.error(err?.response?.data?.msg || "添加失败");
+      ElMessage.error(
+        err?.response?.data?.msg || (props.id ? "试卷编辑失败" : "添加失败")
+      );
     });
 };
 </script>
