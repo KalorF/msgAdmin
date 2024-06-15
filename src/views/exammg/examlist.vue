@@ -75,7 +75,7 @@ onMounted(async () => {
         <div class="w-1 h-4 bg-orange-400 rounded-sm mr-2"></div>
         我的考试
       </div>
-      <div class="flex flex-wrap overflow-auto gap-3 flex-1 mt-3">
+      <div class="flex flex-wrap overflow-auto gap-3 flex-1 mt-3 content-start">
         <div
           v-for="item in list"
           :key="item.id"

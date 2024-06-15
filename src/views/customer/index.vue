@@ -854,7 +854,7 @@ onMounted(() => {
 
 <template>
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)]">
-    <div class="flex items-center mb-4">
+    <div class="flex items-center mb-4 max-phone:block">
       <el-radio-group
         v-model="activeValue"
         size="small"
@@ -865,7 +865,7 @@ onMounted(() => {
         <el-radio-button label="被删除客户" value="del" />
       </el-radio-group>
       <el-button
-        v-if="actions.includes('CreateCustomerAction')"
+        v-if="actions.includes('CreateCustomerAction') && activeValue === 'has'"
         class="ml-4"
         type="primary"
         size="small"
@@ -875,7 +875,7 @@ onMounted(() => {
         >配置客户试图查询</el-button
       >
       <div
-        class="ml-auto flex flex-wrap gap-1 relative"
+        class="ml-auto flex flex-wrap gap-1 relative max-phone:mt-2"
         v-if="activeValue === 'has'"
       >
         <el-button
@@ -1043,7 +1043,7 @@ onMounted(() => {
                   >分享客户</el-dropdown-item
                 >
                 <el-dropdown-item
-                  v-if="actions.includes('DeleteCustomerAction')"
+                  v-if="actions.includes('CreateCustomerAction')"
                   :icon="Delete"
                   @click="handleDel(props.row)"
                   >删除</el-dropdown-item

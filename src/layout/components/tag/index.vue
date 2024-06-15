@@ -552,6 +552,7 @@ onBeforeUnmount(() => {
           @mouseenter.prevent="onMouseenter(index)"
           @mouseleave.prevent="onMouseleave(index)"
           @click="tagOnClick(item)"
+          @touchstart="tagOnClick(item)"
         >
           <span
             class="tag-title dark:!text-text_color_primary dark:hover:!text-primary"

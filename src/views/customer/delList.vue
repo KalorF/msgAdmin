@@ -396,7 +396,7 @@ onMounted(() => {
     </el-table-column>
     <el-table-column label="操作" #default="props">
       <el-button
-        v-if="actions.includes('DeleteCustomerAction')"
+        v-if="actions.includes('CreateCustomerAction')"
         link
         type="success"
         @click="handlecover(props.row)"

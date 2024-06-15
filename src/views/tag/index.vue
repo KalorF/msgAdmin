@@ -22,6 +22,7 @@ import {
 } from "@element-plus/icons-vue";
 import Axios from "axios";
 import { usePermissionActionStroe } from "@/store/modules/permission";
+import topCollapse from "@/layout/components/sidebar/topCollapse.vue";
 
 defineOptions({
   name: "taglist"
@@ -287,6 +288,8 @@ const handleUpload = async () => {
       );
     });
 };
+
+const showBar = ref(false);
 </script>
 
 <template>
@@ -295,19 +298,14 @@ const handleUpload = async () => {
     class="p-4 py-1 pt-3 bg-white rounded-lg flex !h-[calc(100%-30px)]"
     ref="container"
   >
-    <div class="w-[300px] h-full border-r border-r-slate-100">
-      <el-form :inline="true" :model="formInline" class="demo-form-inline">
-        <el-form-item>
-          <!-- <el-button type="primary" @click="onSubmit">查询</el-button> -->
-          <el-button
-            v-if="actions.includes('CreateTagGroup')"
-            ype="default"
-            @click="dialogVisiable = true"
-            >创建标签分类</el-button
-          >
-        </el-form-item>
-      </el-form>
-      <div class="overflow-hidden" :style="`height: ${listHeight}px`">
+    <div class="w-[300px] h-full border-r border-r-slate-100 max-phone:hidden">
+      <el-button
+        v-if="actions.includes('CreateTagGroup')"
+        ype="default"
+        @click="dialogVisiable = true"
+        >创建标签分类</el-button
+      >
+      <div class="overflow-hidden mt-3" :style="`height: ${listHeight}px`">
         <div class="h-full overflow-auto">
           <div
             v-for="item in tagList"
@@ -380,6 +378,75 @@ const handleUpload = async () => {
         </div>
       </div>
     </div>
+    <el-drawer
+      :direction="'ltr'"
+      :size="320"
+      v-model="showBar"
+      :with-header="false"
+      :lock-scroll="false"
+    >
+      <div class="w-[300px] h-full border-r border-r-slate-100">
+        <el-button
+          v-if="actions.includes('CreateTagGroup')"
+          ype="default"
+          @click="dialogVisiable = true"
+          >创建标签分类</el-button
+        >
+        <div class="overflow-hidden mt-3" :style="`height: ${listHeight}px`">
+          <div class="h-full overflow-auto">
+            <div
+              v-for="item in tagList"
+              :key="item.id"
+              class="max-w-[280px] w-full shadow border border-slate-100 rounded-md overflow-hidden hover:shadow-md hover:bg-[#FFFAF0] relative mb-3"
+              style="height: fit-content"
+              :class="{
+                'bg-[#FFFAF0]': activeItem && activeItem.id === item.id
+              }"
+              @click="selGroup(item)"
+            >
+              <div
+                v-if="activeItem && activeItem.id === item.id"
+                class="w-1 h-full absolute left-0 bg-[#FF9912]"
+              ></div>
+              <div class="p-4 pt-4 pr-2">
+                <p class="text-sm text-zinc-900 flex items-center">
+                  <span class="mr-2">{{ item.name }}</span>
+                  <svg
+                    v-if="actions.includes('UpdateTagGroup')"
+                    @click.stop="handleEdit(item)"
+                    class="ml-auto w-4 h-4 cursor-pointer"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 1024 1024"
+                    data-v-ea893728=""
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M832 512a32 32 0 1 1 64 0v352a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h352a32 32 0 0 1 0 64H192v640h640z"
+                    ></path>
+                    <path
+                      fill="currentColor"
+                      d="m469.952 554.24 52.8-7.552L847.104 222.4a32 32 0 1 0-45.248-45.248L477.44 501.44l-7.552 52.8zm422.4-422.4a96 96 0 0 1 0 135.808l-331.84 331.84a32 32 0 0 1-18.112 9.088L436.8 623.68a32 32 0 0 1-36.224-36.224l15.104-105.6a32 32 0 0 1 9.024-18.112l331.904-331.84a96 96 0 0 1 135.744 0z"
+                    ></path>
+                  </svg>
+                  <el-button
+                    v-if="actions.includes('DeleteTagGroup')"
+                    @click.stop="handleDel(item.id)"
+                    type="danger"
+                    size="small"
+                    text
+                    >删除</el-button
+                  >
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
+    <topCollapse
+      class="phone:hidden absolute max-phone:ml-[-25px] top-3.5"
+      @toggleClick="showBar = true"
+    />
     <div class="w-full flex-1 flex-col px-6 h-full">
       <div
         v-if="activeItem"

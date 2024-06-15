@@ -251,7 +251,7 @@ onMounted(() => {
     </div>
     <div
       v-if="list.length"
-      class="w-full mt-4 overflow-auto flex flex-wrap shrink-0 pb-4"
+      class="w-full mt-4 overflow-auto flex flex-wrap shrink-0 pb-4 content-start"
       :style="`height: ${listHeight}px`"
     >
       <div
