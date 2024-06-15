@@ -32,6 +32,10 @@ const getList = () => {
             item.history = [];
           }
         });
+      } else {
+        list.value.forEach((item: any) => {
+          item.history = [];
+        });
       }
       console.log(list.value);
     }

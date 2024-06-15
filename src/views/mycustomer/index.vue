@@ -942,7 +942,7 @@ onMounted(async () => {
             <el-icon class="mr-1" :size="20" color="#393e46"
               ><Cellphone
             /></el-icon>
-            {{ props.row.phone }}
+            {{ props.row.phone.replace(/(\d{3})(\d{5})(\d{3})/, "$1*****$3") }}
           </div>
         </template>
       </el-table-column>
