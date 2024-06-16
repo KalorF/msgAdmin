@@ -36,8 +36,8 @@ dataThemeChange();
 const { title } = useNav();
 
 const ruleForm = reactive({
-  username: "admin",
-  password: "admin"
+  username: "",
+  password: ""
 });
 
 const onLogin = async (formEl: FormInstance | undefined) => {
@@ -65,12 +65,15 @@ const onLogin = async (formEl: FormInstance | undefined) => {
             await getPolicyByUserId({
               uid_list: [useUserStoreHook().userInfo.id]
             }).then(res => {
-              let policy = {};
+              let policy: any = {};
               if (res.code === 200 && Object.keys(res.data.policies).length) {
                 policy = Object.values(res.data.policies)[0];
                 usePermissionStore().setPolicies(policy);
               } else {
                 usePermissionStore().setPolicies(policy);
+              }
+              if (!policy.actions) {
+                message("无菜单权限, 请联系管理员开通", { type: "warning" });
               }
               window.localStorage.setItem("_policy", JSON.stringify(policy));
             });

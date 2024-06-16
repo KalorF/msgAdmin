@@ -37,7 +37,7 @@ const loopFn = (time: number) => {
       update(second);
       second = 0;
     }
-    if (props.detail.pdf_url && second >= 10) {
+    if (props.detail.pdf_url && second >= 5) {
       update(second);
       second = 0;
     }
@@ -60,6 +60,8 @@ const handletime = (time: any) => {
     update(el.duration);
   }
 };
+
+const onPageChange = () => {};
 
 onMounted(() => {
   nextTick(async () => {
@@ -107,7 +109,7 @@ onUnmounted(() => {
           class="w-full flex-1 border border-slate-100 rounded-sm"
           v-if="detail.pdf_url"
         >
-          <PDF :src="detail.pdf_url" />
+          <PDF @onPageChange="onPageChange" :src="detail.pdf_url" />
         </div>
       </div>
     </div>

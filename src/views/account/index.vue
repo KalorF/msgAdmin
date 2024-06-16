@@ -145,9 +145,6 @@ const handleCreateAccount = () => {
   } else if (!cloneData.phone) {
     ElMessage("请填写手机");
     return;
-  } else if (!cloneData.email) {
-    ElMessage("请填写邮箱");
-    return;
   } else if (!cloneData.password && !isEdit.value) {
     ElMessage("请填写密码");
     return;
@@ -163,11 +160,15 @@ const handleCreateAccount = () => {
     ElMessage("请填写正确邮箱");
     return;
   }
+  if (!cloneData.organization_id) {
+    ElMessage("请选择组织");
+    return;
+  }
   const flag = isEdit.value;
   const func = flag ? postAccountUpdate : createAccount;
   let data: any = Object.assign({}, dialogData.value);
   if (data.organization_id) {
-    data.organization.id = data.organization_id;
+    data.organization_id = data.organization_id;
   }
   if (flag) delete data.password;
   func({ ...data })
@@ -211,17 +212,17 @@ const handleUnlock = (item: any) => {
   });
   let data = Object.assign({}, dialogData.value);
   delete data.password;
-  postAccountUpdate({ ...data, is_lock: false })
+  postAccountUpdate({ ...data, is_lock: !item.is_lock })
     .then(res => {
       if (res.code === 200) {
-        ElMessage.success("解锁成功");
+        ElMessage.success("操作成功");
         getlistData();
       } else {
-        ElMessage.error("解锁失败");
+        ElMessage.error("操作失败");
       }
     })
     .catch(err => {
-      ElMessage.error(err?.response?.data?.msg || "解锁失败");
+      ElMessage.error(err?.response?.data?.msg || "操作失败");
     });
 };
 
@@ -320,15 +321,17 @@ onMounted(() => {
       <el-table-column prop="email" label="邮箱" />
       <el-table-column label="帐号是否被锁">
         <template #default="scope">
-          {{ scope.row.is_lock ? "是" : "否" }}
-          <el-button
-            class="ml-1"
-            @click="handleUnlock(scope.rwo)"
-            type="warning"
-            link
-            v-if="scope.row.is_lock && actions.includes('UpdateAccount')"
-            >解锁</el-button
-          >
+          <div class="flex items-center">
+            {{ scope.row.is_lock ? "是" : "否" }}
+            <el-button
+              class="ml-1"
+              @click="handleUnlock(scope.row)"
+              :type="scope.row.is_lock ? 'danger' : 'success'"
+              link
+              v-if="actions.includes('UpdateAccount')"
+              >{{ scope.row.is_lock ? "解锁" : "锁住" }}</el-button
+            >
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="创建时间">

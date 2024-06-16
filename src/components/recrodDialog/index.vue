@@ -152,7 +152,7 @@ watch(
               </div>
             </div>
             <div class="text-zinc-400 text-xs mt-1">
-              操作者：{{ item.staff.name }}
+              操作者：{{ item.staff.name || item.staff.account }}
             </div>
           </el-timeline-item>
         </el-timeline>

@@ -1,8 +1,13 @@
 <template>
   <div class="p-4 bg-white rounded-lg h-[calc(100%-30px)]">
-    <el-button round :icon="ArrowLeft" type="primary" @click="emits('back')"
-      >返回</el-button
-    >
+    <div class="flex items-center gap-3">
+      <el-button round :icon="ArrowLeft" type="primary" @click="emits('back')"
+        >返回</el-button
+      >
+    </div>
+    <p v-if="props.exam" class="ml-2 text-xl font-semibold text-rose-500">
+      考试分数: {{ props.exam.score }}
+    </p>
     <h1 class="mt-4">{{ examData.title }}</h1>
     <div v-if="examData.limitTime">
       <p>限时：{{ examData.limitTime }} 分钟</p>
@@ -12,7 +17,10 @@
       <h2>单选题</h2>
       <div v-for="(single, index) in examData.single_list" :key="single.id">
         <p>{{ index + 1 }}. {{ single.base_info.question }}</p>
-        <el-radio-group v-model="answers.single[single.id]">
+        <el-radio-group
+          :disabled="disabled"
+          v-model="answers.single[single.id]"
+        >
           <el-radio
             v-for="(choice, choiceIndex) in single.choices"
             :key="choiceIndex"
@@ -28,7 +36,10 @@
       <h2>多选题</h2>
       <div v-for="(multi, index) in examData.multi_list" :key="multi.id">
         <p>{{ index + 1 }}. {{ multi.base_info.question }}</p>
-        <el-checkbox-group v-model="answers.multi[multi.id]">
+        <el-checkbox-group
+          :disabled="disabled"
+          v-model="answers.multi[multi.id]"
+        >
           <el-checkbox
             v-for="(choice, choiceIndex) in multi.multi_choice"
             :key="choiceIndex"
@@ -44,7 +55,7 @@
       <h2>判断题</h2>
       <div v-for="(judge, index) in examData.judge_list" :key="judge.id">
         <p>{{ index + 1 }}. {{ judge.questions[0].question }}</p>
-        <el-radio-group v-model="answers.judge[judge.id]">
+        <el-radio-group :disabled="disabled" v-model="answers.judge[judge.id]">
           <el-radio :label="true">正确</el-radio>
           <el-radio :label="false">错误</el-radio>
         </el-radio-group>
@@ -56,6 +67,7 @@
       <div v-for="(cloze, index) in examData.cloze_list" :key="cloze.id">
         <p>{{ index + 1 }}. {{ cloze.question }}</p>
         <el-input
+          :disabled="disabled"
           v-for="(item, index) in cloze.answer.answer.split(',')"
           :key="index"
           v-model="answers.cloze[cloze.id][index]"
@@ -64,13 +76,18 @@
       </div>
     </div>
 
-    <el-button type="primary" class="my-6" round @click="submitAnswers"
+    <el-button
+      v-if="!disabled"
+      type="primary"
+      class="my-6"
+      round
+      @click="submitAnswers"
       >提交答案</el-button
     >
   </div>
 </template>
 <script lang="ts" setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { getExamDetail, createUserExam } from "@/api/exam";
@@ -80,7 +97,12 @@ import { useUserStoreHook } from "@/store/modules/user";
 const emits = defineEmits(["back"]);
 const props = defineProps<{
   id?: string;
+  exam?: any;
 }>();
+
+const disabled = computed(() => {
+  return props.exam ? true : false;
+});
 
 const userStore = useUserStoreHook();
 const cloneExamData = ref({});
@@ -102,7 +124,7 @@ const answers = ref({
 
 const fetchExamDetail = async id => {
   try {
-    console.log("examId:", id);
+    // console.log("examId:", id);
     const res = await getExamDetail(id);
     if (res.code === 200) {
       examData.value = res.data;
@@ -119,16 +141,20 @@ const fetchExamDetail = async id => {
 
 const initializeAnswers = () => {
   examData.value.single_list.forEach(single => {
-    answers.value.single[single.id] = null;
+    answers.value.single[single.id] = props.exam ? single.answer.answer : null;
   });
   examData.value.multi_list.forEach(multi => {
-    answers.value.multi[multi.id] = [];
+    answers.value.multi[multi.id] = props.exam
+      ? multi.multi_answer.answers
+      : [];
   });
   examData.value.judge_list.forEach(judge => {
-    answers.value.judge[judge.id] = null;
+    answers.value.judge[judge.id] = props.exam ? judge.answer.Answers[0] : null;
   });
   examData.value.cloze_list.forEach(cloze => {
-    answers.value.cloze[cloze.id] = [];
+    answers.value.cloze[cloze.id] = props.exam
+      ? cloze.answer.answer.split(",")
+      : [];
   });
 };
 
@@ -174,11 +200,18 @@ const submitAnswers = () => {
         ElMessage.error("提交失败");
       }
     })
-    .catch(err => err?.response?.data?.msg || "提交失败");
+    .catch(err => ElMessage.error(err?.response?.data?.msg || "提交失败"));
 };
 
 onMounted(() => {
-  fetchExamDetail(props.id);
+  if (props.id) {
+    fetchExamDetail(props.id);
+  }
+  if (props.exam) {
+    examData.value = props.exam.answer_exam;
+    initializeAnswers();
+    // console.log("examData:", examData.value);
+  }
 });
 </script>
 

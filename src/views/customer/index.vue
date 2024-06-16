@@ -39,6 +39,7 @@ import dayjs from "dayjs";
 import DelList from "./delList.vue";
 import { useUserStoreHook } from "@/store/modules/user";
 import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import tagPop from "@/components/tagPop/index.vue";
 import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
@@ -174,6 +175,26 @@ const getData = () => {
 const valueGroup = ref([]);
 
 const options = ref([]);
+
+const tagAllTags = ref([]);
+
+const getAllTagsData = () => {
+  getAllGroupTag()
+    .then(res => {
+      if (res.code === 200) {
+        const data = [];
+        res.data.forEach(item => {
+          data.push(...item.tag_list);
+        });
+        tagAllTags.value = data;
+      } else {
+        tagAllTags.value = [];
+      }
+    })
+    .catch(() => {
+      tagAllTags.value = [];
+    });
+};
 
 const getTagOptions = async () => {
   const { data: groups = [] } = await getAllGroupTag();
@@ -646,7 +667,64 @@ const keyMap = {
   客户手机: "phone",
   工作地址: "working_address",
   微信: "wechat",
-  邮箱: "email"
+  邮箱: "email",
+  QQ: "qq",
+  客户标签: "customer_tag_list"
+};
+
+const exportExcel = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Sheet1");
+  worksheet.getCell("A1").value = "客户名称";
+  worksheet.getCell("B1").value = "客户手机";
+  worksheet.getCell("C1").value = "公司";
+  worksheet.getCell("D1").value = "邮箱";
+  worksheet.getCell("E1").value = "微信";
+  worksheet.getCell("F1").value = "企业微信";
+  worksheet.getCell("G1").value = "QQ";
+  worksheet.getCell("H1").value = "地址";
+  worksheet.getCell("I1").value = "工作地址";
+  worksheet.getCell("J1").value = "客户标签";
+  // const dropdownOptions1 = ["微信", "支付宝", "酷酷酷"];
+  const dropdownOptions = tagAllTags.value.map(item => item.name);
+
+  worksheet.addRow([
+    "测试客户",
+    18676186777,
+    "深圳市南山区",
+    "867932@qq.com",
+    "weixin",
+    "wecom",
+    "88888",
+    "深圳市南山区",
+    "深圳市南山区",
+    dropdownOptions[0]
+  ]);
+
+  const worksheet2 = workbook.addWorksheet("Sheet2");
+
+  worksheet2.getColumn("A").values = dropdownOptions;
+
+  const col = worksheet.getColumn("J");
+  col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+    cell.dataValidation = {
+      type: "list",
+      allowBlank: true,
+      // 多选配置
+      formulae: ["=Sheet2!$A:$A"]
+    };
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `客户批量模版文件.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
 };
 
 function replaceKey(array: any) {
@@ -685,7 +763,14 @@ const handleMul = () => {
       const ws = XLSX.utils.sheet_to_json(workbook.Sheets[wsname]); // 生成 JSON 格式的表格内容
       if (ws.length) {
         const data = replaceKey(ws);
+        data.forEach(item => {
+          const tags = item.customer_tag_list.split(",");
+          item.customer_tag_list = tagAllTags.value.filter(tag =>
+            tags.includes(tag.name)
+          );
+        });
         mulTableData.value = data;
+
         mulDialogVisiable.value = true;
       }
       document.body.removeChild(input);
@@ -696,8 +781,18 @@ const handleMul = () => {
   input.click();
 };
 
+const isFrocemul = ref(false);
+
 const handleConfirmImport = () => {
-  customerBatchCreate({ customers: mulTableData.value, force: true })
+  const customers = mulTableData.value.map(item => {
+    const data = Object.assign({}, item);
+    data.customer_tag_list = item.customer_tag_list.map(i => ({
+      tag_id: i.id,
+      tag: i
+    }));
+    return data;
+  });
+  customerBatchCreate({ customers, force: isFrocemul.value })
     .then(res => {
       if (res.code === 200) {
         message("导入成功", { type: "success" });
@@ -849,12 +944,14 @@ onMounted(() => {
   // getData();
   // getTagOptions();
   getDataNew();
+  getAllTagsData();
 });
 </script>
 
 <template>
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)]">
     <div class="flex items-center mb-4 max-phone:block">
+      <!-- <el-button type="primary" @click="exportExcel">导出</el-button> -->
       <el-radio-group
         v-model="activeValue"
         size="small"
@@ -872,7 +969,7 @@ onMounted(() => {
         text
         bg
         @click="queryViewDialogShow = true"
-        >配置客户试图查询</el-button
+        >配置客户视图查询</el-button
       >
       <div
         class="ml-auto flex flex-wrap gap-1 relative max-phone:mt-2"
@@ -894,7 +991,13 @@ onMounted(() => {
             >批量导入</el-button
           >
         </div>
-        <a
+        <div
+          class="absolute top-9 right-4 text-sm text-sky-500 underline hover:text-cyan-700 cursor-default"
+          @click="exportExcel"
+        >
+          模版文件
+        </div>
+        <!-- <a
           v-if="actions.includes('CreateCustomerAction')"
           class="absolute top-9 right-4 text-sm text-sky-500 underline hover:text-cyan-700"
           href="https://abynn.oss-cn-shenzhen.aliyuncs.com/%E6%89%B9%E9%87%8F%E5%AE%A2%E6%88%B7-1715698399574.xlsx"
@@ -902,7 +1005,7 @@ onMounted(() => {
           target="view_window"
         >
           模版文件
-        </a>
+        </a> -->
       </div>
     </div>
     <template v-if="activeValue === 'has'">
@@ -1251,6 +1354,20 @@ onMounted(() => {
           label="客户名称"
           width="120"
         />
+        <el-table-column label="客户标签" width="160">
+          <template #default="props">
+            <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+              <div
+                v-if="props.row.customer_tag_list"
+                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                v-for="item in props.row.customer_tag_list"
+                :key="item.id"
+              >
+                {{ item.name }}
+              </div>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="phone" label="客户手机" width="100" />
         <el-table-column prop="company" label="公司" width="120" />
         <el-table-column prop="wechat" label="微信" width="100" />
@@ -1261,6 +1378,7 @@ onMounted(() => {
       </el-table>
       <template #footer>
         <div class="dialog-footer">
+          <el-checkbox class="!mr-2" v-model="isFrocemul">是否覆盖</el-checkbox>
           <el-button @click="handleMulCancel">取消</el-button>
           <el-button type="primary" @click="handleConfirmImport">
             确认导入
@@ -1279,6 +1397,7 @@ onMounted(() => {
         <el-form-item label="标签">
           <tagPop :checkedItems="tagGroupCheckitems" @change="tagGroupChange">
             <el-input
+              style="width: 280px"
               placeholder="请选择标签"
               v-model="tagGroup"
               clearable

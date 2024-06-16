@@ -25,7 +25,7 @@ export const createCourse = (data: any) => {
 }
 
 export const delCourse = (id: string) => {
-  return http.request<any>("post", `/api/course/delete/${id}`, { });
+  return http.request<any>("post", `/api/course/delete/${id}`, { data: { id } });
 }
 
 export const getCourseById = (id: string) => {

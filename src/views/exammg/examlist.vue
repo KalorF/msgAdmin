@@ -16,6 +16,7 @@ const userStore = useUserStoreHook();
 const list = ref([]);
 const showList = ref(true);
 const currentId = ref("");
+const answerExam = ref(null);
 
 const getList = () => {
   getUserExamList({
@@ -47,13 +48,18 @@ const getListExam = async () => {
 };
 
 const viewDetail = (item: any) => {
-  currentId.value = item.id;
+  if (item.history && item.history.length) {
+    answerExam.value = item.history[0];
+  } else {
+    currentId.value = item.id;
+  }
   showList.value = false;
 };
 
 const handleBack = async () => {
   showList.value = true;
   currentId.value = "";
+  answerExam.value = null;
   await getListExam();
   getList();
 };
@@ -91,7 +97,13 @@ onMounted(async () => {
           >
             {{ item.history.length ? "已考试" : "未考试" }}
           </div>
-          <el-popover
+          <div
+            v-if="item.history && item.history.length"
+            class="absolute text-sm top-0 right-0 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center py-1 px-2 bg-[#00000080]"
+          >
+            考试分数: {{ item.history[0].score }}
+          </div>
+          <!-- <el-popover
             v-if="item.history && item.history.length"
             width="260"
             placement="bottom"
@@ -123,7 +135,7 @@ onMounted(async () => {
                 </div>
               </div>
             </template>
-          </el-popover>
+          </el-popover> -->
           <div
             class="absolute bottom-[60px] text-sm right-0 text-[#ffffff] rounded flex justify-center items-center py-1 px-2 bg-[#00000080]"
           >
@@ -152,7 +164,12 @@ onMounted(async () => {
         </div>
       </div>
     </div>
-    <ExamDetail v-if="!showList" @back="handleBack" :id="currentId" />
+    <ExamDetail
+      v-if="!showList"
+      @back="handleBack"
+      :exam="answerExam"
+      :id="currentId"
+    />
   </div>
 </template>
 

@@ -38,7 +38,7 @@ const getData = () => {
     limit: pageSize.value,
     offset: currentPage.value - 1,
     updated_at_begin: (formInline.date[0] || 0) / 1000,
-    updated_at_end: (formInline.date[1] || 0) / 1000
+    updated_at_end: Math.floor((formInline.date[1] + 86399) / 1000)
   })
     .then(res => {
       if (res.code === 200) {

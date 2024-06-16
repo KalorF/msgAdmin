@@ -27,7 +27,8 @@ import {
   Delete,
   Management,
   CollectionTag,
-  Collection
+  Collection,
+  Loading
 } from "@element-plus/icons-vue";
 import Axios from "axios";
 import { usePermissionActionStroe } from "@/store/modules/permission";
@@ -198,6 +199,9 @@ const curCourseInfo = ref(null);
 const exectUpload = ref(false);
 
 const handleCloseUpload = () => {
+  if (uploading.value) {
+    return;
+  }
   uploadDialog.value = false;
   upload.value.name = "";
   upload.value.cover_url = "";
@@ -231,6 +235,8 @@ const handleAvatarSuccess = (response: any, uploadFile: any) => {
   uploadImg.value = URL.createObjectURL(response.raw!);
 };
 
+const uploading = ref(false);
+
 const handleUpload = async () => {
   if (upload.value.name === "") {
     ElMessage.info("请填写课程名称");
@@ -261,6 +267,7 @@ const handleUpload = async () => {
     });
     upload.value.cover_url = postUrl.split("?").shift();
   }
+  uploading.value = true;
   const func = uploadEdit.value ? updateCourse : createCourse;
   const baseData = {
     cover_url: upload.value.cover_url,
@@ -282,6 +289,9 @@ const handleUpload = async () => {
       ElMessage.error(
         err?.response?.data?.msg || uploadEdit.value ? "修改失败" : "上传失败"
       );
+    })
+    .finally(() => {
+      uploading.value = false;
     });
 };
 
@@ -448,7 +458,7 @@ const showBar = ref(false);
         >
       </div>
       <div
-        class="flex-1 w-full mt-4 overflow-auto mb-4 mr-4 flex flex-wrap shrink-0 gap-5 pb-4"
+        class="flex-1 w-full mt-4 overflow-auto mb-4 mr-4 flex flex-wrap shrink-0 gap-5 pb-4 content-start"
         :style="`height: ${listHeight}px`"
       >
         <template v-if="list.length">
@@ -575,9 +585,12 @@ const showBar = ref(false);
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="handleUpload">{{
-            uploadEdit ? "确认修改" : "创建课程"
-          }}</el-button>
+          <el-button
+            type="primary"
+            :loading="uploading"
+            @click="handleUpload"
+            >{{ uploadEdit ? "确认修改" : "创建课程" }}</el-button
+          >
           <el-button @click="handleCloseUpload">取消</el-button>
         </div>
       </template>
