@@ -6,7 +6,8 @@ import {
   recoverAccount,
   postAccountUpdate,
   getAccountByAccount,
-  postAccountUpdateStaffPwd
+  postAccountUpdateStaffPwd,
+  getAccountByName
 } from "@/api/account";
 import { getAllOrg } from "@/api/organization";
 import { ref, reactive, onMounted, computed } from "vue";
@@ -58,7 +59,7 @@ const onSearch = () => {
     ElMessage.info("请输入需要查询的账号");
     return;
   }
-  getAccountByAccount(formInline.account)
+  getAccountByName(formInline.account)
     .then(res => {
       if (res.code === 200) {
         if (res.data) {

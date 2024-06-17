@@ -133,10 +133,10 @@ const confirmCreate = () => {
     message("请输入客户池名称");
     return;
   }
-  if (formdData.value.tagOptions.length === 0) {
-    message("请选择客户标签");
-    return;
-  }
+  // if (formdData.value.tagOptions.length === 0) {
+  //   message("请选择客户标签");
+  //   return;
+  // }
   const func = isEdit.value ? poolSet : poolSet;
   let data: any = {
     name: formdData.value.name,

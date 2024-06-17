@@ -143,8 +143,8 @@ const getCurrentPolicy = () => {
     if (res.code === 200 && Object.keys(res.data.policies).length) {
       const policy: any = Object.values(res.data.policies)[0];
       role.value = policy.role.RoleType;
-      resourceCheckList.value = policy.resources.map(item => item.name);
-      actionCheckList.value = policy.actions.map(item => item.name);
+      resourceCheckList.value = policy.resources && policy.resources.map(item => item.name) || [];
+      actionCheckList.value = policy.actions && policy.actions.map(item => item.name) || [];
     } else {
       role.value = rolesList.value[2].value;
       resourceCheckList.value = [];

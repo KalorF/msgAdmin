@@ -20,7 +20,7 @@ import { useRouter } from "vue-router";
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
   timeout: 60000,
-  baseURL: import.meta.env.MODE === 'development' ? '' : 'http://47.113.116.191',
+  // baseURL: import.meta.env.MODE === 'development' ? '' : 'http://47.113.116.191',
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",

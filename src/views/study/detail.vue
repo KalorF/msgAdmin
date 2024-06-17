@@ -33,11 +33,11 @@ const update = (time: number) => {
 const loopFn = (time: number) => {
   timer = setInterval(() => {
     second++;
-    if (props.detail.image_url && second >= 3) {
+    if (props.detail.image_url && second >= 60) {
       update(second);
       second = 0;
     }
-    if (props.detail.pdf_url && second >= 5) {
+    if (props.detail.pdf_url && second >= 120) {
       update(second);
       second = 0;
     }

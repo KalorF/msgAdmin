@@ -103,9 +103,11 @@ const getAllocData = () => {
 const onSubmit = async () => {
   currentPage.value = 1;
   pageSize.value = 10;
-  if (cutomerType.value) {
-    getData();
-  }
+  // if (cutomerType.value) {
+  cutomerType.value = "";
+  currentViewData.value = null;
+  getData();
+  // }
   // getData();
   // if (valueGroup.value.length) {
   //   const res = await getCustomerByTagId({ tag_id_list: valueGroup.value });

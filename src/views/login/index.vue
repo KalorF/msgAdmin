@@ -72,7 +72,7 @@ const onLogin = async (formEl: FormInstance | undefined) => {
               } else {
                 usePermissionStore().setPolicies(policy);
               }
-              if (!policy.actions) {
+              if (!policy.resources) {
                 message("无菜单权限, 请联系管理员开通", { type: "warning" });
               }
               window.localStorage.setItem("_policy", JSON.stringify(policy));
