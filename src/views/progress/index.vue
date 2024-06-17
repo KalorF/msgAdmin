@@ -139,7 +139,11 @@ onMounted(() => {
       @closed="handleCancel"
       align-center
     >
-      <el-form class="demo-form-inline">
+      <el-form
+        class="demo-form-inline"
+        @keyup.enter.native="handleConfrim"
+        @submit.native.prevent
+      >
         <el-form-item label="进度名称">
           <el-input
             v-model="progressVal"

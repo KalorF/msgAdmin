@@ -26,6 +26,7 @@ import { getUserChapterList } from "@/api/chapter";
 import examDialog from "@/components/examDialog/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
 import topCollapse from "@/layout/components/sidebar/topCollapse.vue";
+import { Plus } from "@element-plus/icons-vue";
 
 const orgList = ref([]);
 const myorg = ref();
@@ -83,14 +84,42 @@ const getAccountData = () => {
 const getallOrgData = () => {
   return getAllOrg().then(res => {
     if (res.code === 200) {
-      orgList.value = res.data.filter(item => !item.is_deleted);
+      const orgdata = res.data.filter(item => !item.is_deleted);
+      // 梳妆结构
+      const tree = (data: any, pid: string, pendding = 0) => {
+        return data
+          .filter((item: any) => item.parent_id === pid)
+          .map((item: any) => {
+            item.pendding = pendding;
+            const children = tree(data, item.id, pendding + 1);
+            if (children.length) {
+              item.children = children;
+            }
+            return item;
+          });
+      };
+      const treeData = tree(orgdata, "0");
+      // 扁平化树并体现层级结构
+      const flat = (data: any, level = 0) => {
+        return data.reduce((prev: any, item: any) => {
+          prev.push({ ...item, level });
+          if (item.children) {
+            prev.push(...flat(item.children, level + 1));
+          }
+          return prev;
+        }, []);
+      };
+      orgList.value = flat(treeData);
     }
   });
 };
 
+// const isSub = ref(false);
+
 const handleCancelCreate = () => {
   dialogVisiable.value = false;
   setTimeout(() => {
+    selSubId.value = "";
     isEdit.value = false;
     orgName.value = "";
   }, 250);
@@ -103,7 +132,10 @@ const confirmCreate = () => {
     const func = isEdit.value ? updateOrg : createOrg;
     const data = isEdit.value
       ? { name: orgName.value, id: curId.value, parent_id: myorg.value.id }
-      : { name: orgName.value, parent_id: myorg.value.id };
+      : {
+          name: orgName.value,
+          parent_id: selSubId.value || myorg.value.id
+        };
     func({ ...data })
       .then(res => {
         if (res.code === 200) {
@@ -354,6 +386,14 @@ const progressformat = (prg: any) => {
   return percentage === 100 ? "100%" : (`${percentage}%` as any);
 };
 
+const selSubId = ref("");
+
+const handleSubAdd = (item: any) => {
+  selSubId.value = item.id;
+  // isSub.value = true;
+  dialogVisiable.value = true;
+};
+
 const showExamDialog = ref(false);
 
 const handleViewExam = (item: any) => {
@@ -367,7 +407,7 @@ const showBar = ref(false);
 <template>
   <div class="p-4 py-1 bg-white rounded-lg flex h-[calc(100%-30px)] w-full">
     <div
-      class="w-[260px] h-full border-r border-r-slate-100 flex flex-col gap-2 pr-2 max-phone:hidden"
+      class="w-[300px] h-full border-r border-r-slate-100 flex flex-col gap-2 pr-2 max-phone:hidden"
     >
       <el-button
         v-if="actions.includes('CreateOrganization')"
@@ -382,47 +422,54 @@ const showBar = ref(false);
         :key="item.id"
         class="rounded-md hover:bg-[#f5f7fa] p-2 w-full text-sm flex items-center"
         :class="{ 'bg-[#f5f7fa]': item.id === activeOrg }"
+        :style="{ paddingLeft: `${(item.level + 1) * 8}px` }"
         @click="selOrg(item.id)"
       >
         {{ item.name }}
         <div class="ml-auto flex">
+          <el-icon
+            :size="16"
+            class="!text-gray-400 hover:!text-slate-500 mr-2"
+            @click.stop="handleSubAdd(item)"
+            ><Plus
+          /></el-icon>
           <svg
             v-if="actions.includes('UpdateOrganization')"
-            @click.stop="handleEdit(item)"
             class="w-4 h-4 mr-2 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"
             data-v-ea893728=""
+            @click.stop="handleEdit(item)"
           >
             <path
               fill="currentColor"
               d="M832 512a32 32 0 1 1 64 0v352a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h352a32 32 0 0 1 0 64H192v640h640z"
-            ></path>
+            />
             <path
               fill="currentColor"
               d="m469.952 554.24 52.8-7.552L847.104 222.4a32 32 0 1 0-45.248-45.248L477.44 501.44l-7.552 52.8zm422.4-422.4a96 96 0 0 1 0 135.808l-331.84 331.84a32 32 0 0 1-18.112 9.088L436.8 623.68a32 32 0 0 1-36.224-36.224l15.104-105.6a32 32 0 0 1 9.024-18.112l331.904-331.84a96 96 0 0 1 135.744 0z"
-            ></path>
+            />
           </svg>
           <svg
             v-if="actions.includes('DeleteOrganization')"
-            @click.stop="handleDel(item.id)"
             class="w-4 h-4 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"
             data-v-ea893728=""
+            @click.stop="handleDel(item.id)"
           >
             <path
               fill="currentColor"
               d="M160 256H96a32 32 0 0 1 0-64h256V95.936a32 32 0 0 1 32-32h256a32 32 0 0 1 32 32V192h256a32 32 0 1 1 0 64h-64v672a32 32 0 0 1-32 32H192a32 32 0 0 1-32-32zm448-64v-64H416v64zM224 896h576V256H224zm192-128a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32m192 0a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32"
-            ></path>
+            />
           </svg>
         </div>
       </div>
     </div>
     <el-drawer
-      :direction="'ltr'"
-      :size="260"
       v-model="showBar"
+      :direction="'ltr'"
+      :size="300"
       :with-header="false"
       :lock-scroll="false"
     >
@@ -445,33 +492,33 @@ const showBar = ref(false);
         <div class="ml-auto flex">
           <svg
             v-if="actions.includes('UpdateOrganization')"
-            @click.stop="handleEdit(item)"
             class="w-4 h-4 mr-2 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"
             data-v-ea893728=""
+            @click.stop="handleEdit(item)"
           >
             <path
               fill="currentColor"
               d="M832 512a32 32 0 1 1 64 0v352a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h352a32 32 0 0 1 0 64H192v640h640z"
-            ></path>
+            />
             <path
               fill="currentColor"
               d="m469.952 554.24 52.8-7.552L847.104 222.4a32 32 0 1 0-45.248-45.248L477.44 501.44l-7.552 52.8zm422.4-422.4a96 96 0 0 1 0 135.808l-331.84 331.84a32 32 0 0 1-18.112 9.088L436.8 623.68a32 32 0 0 1-36.224-36.224l15.104-105.6a32 32 0 0 1 9.024-18.112l331.904-331.84a96 96 0 0 1 135.744 0z"
-            ></path>
+            />
           </svg>
           <svg
             v-if="actions.includes('DeleteOrganization')"
-            @click.stop="handleDel(item.id)"
             class="w-4 h-4 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"
             data-v-ea893728=""
+            @click.stop="handleDel(item.id)"
           >
             <path
               fill="currentColor"
               d="M160 256H96a32 32 0 0 1 0-64h256V95.936a32 32 0 0 1 32-32h256a32 32 0 0 1 32 32V192h256a32 32 0 1 1 0 64h-64v672a32 32 0 0 1-32 32H192a32 32 0 0 1-32-32zm448-64v-64H416v64zM224 896h576V256H224zm192-128a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32m192 0a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32"
-            ></path>
+            />
           </svg>
         </div>
       </div>
@@ -525,9 +572,9 @@ const showBar = ref(false);
         <el-table-column label="操作">
           <template #default="scope">
             <el-button
+              v-if="actions.includes('UpdateAccount')"
               link
               type="primary"
-              v-if="actions.includes('UpdateAccount')"
               @click="handleEditAuth(scope.row)"
             >
               编辑权限</el-button
@@ -545,9 +592,9 @@ const showBar = ref(false);
       </el-table>
       <div class="mt-2 flex justify-end">
         <el-pagination
-          class="flex-wrap gap-y-2"
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
+          class="flex-wrap gap-y-2"
           :page-sizes="[10, 20, 30, 40]"
           background
           layout="total, sizes, prev, pager, next, jumper"
@@ -563,8 +610,8 @@ const showBar = ref(false);
       v-model="dialogVisiable"
       :title="isEdit ? '修改组织名称' : '创建组织'"
       width="400"
-      @closed="handleCancelCreate"
       align-center
+      @closed="handleCancelCreate"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="组织名称">
@@ -586,8 +633,8 @@ const showBar = ref(false);
       v-model="dialogSearch"
       title="添加账号"
       width="400"
-      @closed="handleCancelSearch"
       align-center
+      @closed="handleCancelSearch"
     >
       <p class="text-gray-400 text-xs mb-2">*输入账号名称搜索后添加</p>
       <el-form inline class="demo-form-inline">
@@ -601,12 +648,12 @@ const showBar = ref(false);
         </el-form-item>
       </el-form>
       <div class="mt-1">
-        <p class="text-zinc-400 text-xs" v-if="noSearchData">未找到用户</p>
+        <p v-if="noSearchData" class="text-zinc-400 text-xs">未找到用户</p>
         <div v-if="searchData && searchData.id !== '0'">
           <div
             class="w-full shadow h-20 border border-slate-100 rounded-md overflow-hidden hover:shadow-md flex"
           >
-            <div class="h-full w-1 bg-[#ff922b]"></div>
+            <div class="h-full w-1 bg-[#ff922b]" />
             <div class="flex w-full">
               <div class="ml-4 pt-2 text-sm text-zinc-800">
                 <p>姓名：{{ searchData.name }}</p>
@@ -626,7 +673,7 @@ const showBar = ref(false);
                     <path
                       fill="currentColor"
                       d="M199.232 125.568 90.624 379.008a32 32 0 0 0 6.784 35.2l512.384 512.384a32 32 0 0 0 35.2 6.784l253.44-108.608a32 32 0 0 0 10.048-52.032L769.6 633.92a32 32 0 0 0-36.928-5.952l-130.176 65.088-271.488-271.552 65.024-130.176a32 32 0 0 0-5.952-36.928L251.2 115.52a32 32 0 0 0-51.968 10.048z"
-                    ></path>
+                    />
                   </svg>
                   {{ searchData.phone }}
                 </p>
@@ -650,8 +697,8 @@ const showBar = ref(false);
       v-model="poolVisible"
       :title="isPoolEdit ? '编辑客户' : '分配客户'"
       width="400"
-      @closed="cancelPool"
       align-center
+      @closed="cancelPool"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="客户池">
@@ -683,11 +730,11 @@ const showBar = ref(false);
       v-model="studyVisible"
       :title="'学习情况'"
       width="600"
-      @closed="cancelStudy"
       align-center
+      @closed="cancelStudy"
     >
       <div style="max-height: 500px" class="overflow-y-auto pb-2">
-        <div class="mb-4" v-for="(item, key) in studyInfo" :key="key">
+        <div v-for="(item, key) in studyInfo" :key="key" class="mb-4">
           <div
             class="flex items-center border-l-4 rounded border-[#FF9912] pl-2 content-start w-full study-progress"
           >

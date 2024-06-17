@@ -133,10 +133,10 @@ const confirmCreate = () => {
     message("请输入客户池名称");
     return;
   }
-  if (formdData.value.tagOptions.length === 0) {
-    message("请选择客户标签");
-    return;
-  }
+  // if (formdData.value.tagOptions.length === 0) {
+  //   message("请选择客户标签");
+  //   return;
+  // }
   const func = isEdit.value ? poolSet : poolSet;
   let data: any = {
     name: formdData.value.name,
@@ -408,41 +408,41 @@ const showBar = ref(false);
         <div class="ml-auto flex">
           <svg
             v-if="actions.includes('CreateCustomerAction')"
-            @click.stop="handleEdit(item)"
             class="w-4 h-4 mr-2 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"
             data-v-ea893728=""
+            @click.stop="handleEdit(item)"
           >
             <path
               fill="currentColor"
               d="M832 512a32 32 0 1 1 64 0v352a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h352a32 32 0 0 1 0 64H192v640h640z"
-            ></path>
+            />
             <path
               fill="currentColor"
               d="m469.952 554.24 52.8-7.552L847.104 222.4a32 32 0 1 0-45.248-45.248L477.44 501.44l-7.552 52.8zm422.4-422.4a96 96 0 0 1 0 135.808l-331.84 331.84a32 32 0 0 1-18.112 9.088L436.8 623.68a32 32 0 0 1-36.224-36.224l15.104-105.6a32 32 0 0 1 9.024-18.112l331.904-331.84a96 96 0 0 1 135.744 0z"
-            ></path>
+            />
           </svg>
           <svg
             v-if="actions.includes('CreateCustomerAction')"
-            @click.stop="handleDel(item.id)"
             class="w-4 h-4 text-gray-400 hover:text-slate-500"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1024 1024"
             data-v-ea893728=""
+            @click.stop="handleDel(item.id)"
           >
             <path
               fill="currentColor"
               d="M160 256H96a32 32 0 0 1 0-64h256V95.936a32 32 0 0 1 32-32h256a32 32 0 0 1 32 32V192h256a32 32 0 1 1 0 64h-64v672a32 32 0 0 1-32 32H192a32 32 0 0 1-32-32zm448-64v-64H416v64zM224 896h576V256H224zm192-128a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32m192 0a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32"
-            ></path>
+            />
           </svg>
         </div>
       </div>
     </div>
     <el-drawer
+      v-model="showBar"
       :direction="'ltr'"
       :size="260"
-      v-model="showBar"
       :with-header="false"
       :lock-scroll="false"
     >
@@ -466,33 +466,33 @@ const showBar = ref(false);
           <div class="ml-auto flex">
             <svg
               v-if="actions.includes('CreateCustomerAction')"
-              @click.stop="handleEdit(item)"
               class="w-4 h-4 mr-2 text-gray-400 hover:text-slate-500"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 1024 1024"
               data-v-ea893728=""
+              @click.stop="handleEdit(item)"
             >
               <path
                 fill="currentColor"
                 d="M832 512a32 32 0 1 1 64 0v352a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h352a32 32 0 0 1 0 64H192v640h640z"
-              ></path>
+              />
               <path
                 fill="currentColor"
                 d="m469.952 554.24 52.8-7.552L847.104 222.4a32 32 0 1 0-45.248-45.248L477.44 501.44l-7.552 52.8zm422.4-422.4a96 96 0 0 1 0 135.808l-331.84 331.84a32 32 0 0 1-18.112 9.088L436.8 623.68a32 32 0 0 1-36.224-36.224l15.104-105.6a32 32 0 0 1 9.024-18.112l331.904-331.84a96 96 0 0 1 135.744 0z"
-              ></path>
+              />
             </svg>
             <svg
               v-if="actions.includes('CreateCustomerAction')"
-              @click.stop="handleDel(item.id)"
               class="w-4 h-4 text-gray-400 hover:text-slate-500"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 1024 1024"
               data-v-ea893728=""
+              @click.stop="handleDel(item.id)"
             >
               <path
                 fill="currentColor"
                 d="M160 256H96a32 32 0 0 1 0-64h256V95.936a32 32 0 0 1 32-32h256a32 32 0 0 1 32 32V192h256a32 32 0 1 1 0 64h-64v672a32 32 0 0 1-32 32H192a32 32 0 0 1-32-32zm448-64v-64H416v64zM224 896h576V256H224zm192-128a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32m192 0a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32"
-              ></path>
+              />
             </svg>
           </div>
         </div>
@@ -556,14 +556,14 @@ const showBar = ref(false);
         <el-button
           v-if="actions.includes('CreateCustomerAction')"
           type="primary"
-          @click="hanldeMulDel"
           :disabled="!selMulIds.length"
+          @click="hanldeMulDel"
           >批量删除</el-button
         >
         <el-pagination
-          class="flex-wrap gap-y-2"
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
+          class="flex-wrap gap-y-2"
           :page-sizes="[10, 20, 30, 40]"
           background
           layout="total, sizes, prev, pager, next, jumper"
@@ -579,8 +579,8 @@ const showBar = ref(false);
       v-model="dialogVisiable"
       :title="isEdit ? '编辑客户池' : '创建客户池子'"
       width="400"
-      @closed="handleCancelCreate"
       align-center
+      @closed="handleCancelCreate"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="客户池名称">
@@ -641,8 +641,8 @@ const showBar = ref(false);
       v-model="ruleVisiable"
       title="配置领取规则"
       width="400"
-      @closed="ruleCancel"
       align-center
+      @closed="ruleCancel"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="每次领取个数">
@@ -702,12 +702,14 @@ const showBar = ref(false);
         </el-table-column>
         <el-table-column label="客户标签" width="230">
           <template #default="props">
-            <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+            <div
+              v-if="props.row.customer_tag_list"
+              class="flex items-center flex-wrap gap-2 mb-2 w-full"
+            >
               <div
-                v-if="props.row.customer_tag_list"
-                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
                 v-for="item in props.row.customer_tag_list"
                 :key="item.id"
+                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
               >
                 {{ item.tag.name }}
               </div>
@@ -727,8 +729,8 @@ const showBar = ref(false);
       </el-table>
       <el-pagination
         v-if="customerTotal"
-        class="flex-wrap gap-y-2 mt-4"
         v-model:current-page="customerCurrentPage"
+        class="flex-wrap gap-y-2 mt-4"
         background
         layout="total, prev, pager, next, jumper"
         :total="customerTotal"

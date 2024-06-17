@@ -13,9 +13,9 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
     warpperEnv(loadEnv(mode, root));
   const plugins = getPluginsList(VITE_CDN, VITE_COMPRESSION);
-  if (VITE_PORT) {
-    plugins.push(mkcert());
-  }
+  // if (VITE_PORT) {
+  //   plugins.push(mkcert());
+  // }
   return {
     base: VITE_PUBLIC_PATH,
     root,
@@ -39,7 +39,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       warmup: {
         clientFiles: ["./index.html", "./src/{views,components}/*"]
       },
-      https: { }
+      // https: { }
     },
     plugins: plugins,
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options

@@ -21,25 +21,33 @@ export const getAccountByAccount = (account: string) => {
 };
 
 export const getAccountlist = (data: any) => {
-  return http.request<any>("get", `/api/account/list/${data.offset}/${data.limit}`);
-}
+  return http.request<any>(
+    "get",
+    `/api/account/list/${data.offset}/${data.limit}`
+  );
+};
 
 export const postAccountUpdate = (data: any) => {
   return http.request<any>("post", `/api/account/update`, { data });
-}
+};
 
 export const postAccountUpdateStaffPwd = (data: any) => {
-  return http.request<any>("post", `/api/account/update/staff/password`, { data });
-}
+  return http.request<any>("post", `/api/account/update/staff/password`, {
+    data
+  });
+};
 
 export const getAccountlistByOrg = (data: any) => {
-  return http.request<any>("get", `/api/account/organization/list/${data.orgId}/${data.offset}/${data.limit}`);
-}
+  return http.request<any>(
+    "get",
+    `/api/account/organization/list/${data.orgId}/${data.offset}/${data.limit}`
+  );
+};
 
-export const getAccountByName = (name) => {
+export const getAccountByName = name => {
   return http.request<any>("get", `/api/account/search/${name}`);
-}
+};
 
-export const postAccountUpdateMyPassword= (data: any) => {
+export const postAccountUpdateMyPassword = (data: any) => {
   return http.request<any>("post", `/api/account/update/my/password`, { data });
-}
+};

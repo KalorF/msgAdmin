@@ -29,12 +29,13 @@
         />
       </div>
 
-      <div class="flex items-center px-4 mb-4">
-        考试时间：<el-input-number
+      <div class="flex items-center px-4 mb-4 gap-2">
+        考试时间:<el-input-number
           v-model="limitTime"
           style="width: 200px"
           placeholder="请输入考试时间"
         />
+        分钟
       </div>
       <div
         class="mb-6 px-4 text-sm"
@@ -413,11 +414,63 @@ onMounted(async () => {
   }
 });
 
+const checkFn = () => {
+  if (!examTitle.value) {
+    ElMessage("请输入考卷标题");
+    return false;
+  }
+  if (!limitTime.value) {
+    ElMessage("请输入考试时间");
+    return false;
+  }
+  for (let i = 0; i < examList.value.length; i++) {
+    const item = examList.value[i];
+    if (!item.body.title) {
+      ElMessage(`请输入第${i + 1}题的题目`);
+      return false;
+    }
+    if (!item.body.score) {
+      ElMessage(`请输入第${i + 1}题的分数`);
+      return false;
+    }
+    if (item.type === "select" || item.type === "multiSelect") {
+      if (!item.body.options.every(option => option.value)) {
+        ElMessage(`请输入第${i + 1}题的选项`);
+        return false;
+      }
+      if (!item.body.answer.value) {
+        ElMessage(`请输入第${i + 1}题的答案`);
+        return false;
+      }
+      if (item.type === "multiSelect" && !item.body.answer.value.length) {
+        ElMessage(`请输入第${i + 1}题的答案`);
+        return false;
+      }
+    }
+    if (item.type === "fillBlank") {
+      if (!item.body.answer.every(ans => ans.value)) {
+        ElMessage(`请输入第${i + 1}题的答案`);
+        return false;
+      }
+    }
+    if (item.type === "checked") {
+      if (!item.body.answer.value) {
+        ElMessage(`请选择第${i + 1}题的答案`);
+        return false;
+      }
+    }
+  }
+  return true;
+};
+
 const submitExam = () => {
+  if (!checkFn()) {
+    return;
+  }
   const formattedData = {
     cloze_list: [],
     judge_list: [],
-    limitTime: 90,
+    limitTime: limitTime.value,
     multi_list: [],
     single_list: [],
     title: examTitle.value,

@@ -6,25 +6,29 @@ import {
   recoverAccount,
   postAccountUpdate,
   getAccountByAccount,
-  postAccountUpdateStaffPwd
+  postAccountUpdateStaffPwd,
+  getAccountByName
 } from "@/api/account";
-import { getAllOrg } from "@/api/organization";
+import { getAllOrg, orgGetlistById } from "@/api/organization";
 import { ref, reactive, onMounted, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
 import policyDialog from "@/components/policy/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
+import { useUserStoreHook } from "@/store/modules/user";
 
 defineOptions({
   name: "accountlist"
 });
+
+const userStroe = useUserStoreHook();
 
 const orgList = ref([]);
 const permission = usePermissionActionStroe();
 const actions = computed(() => permission.value);
 
 const getallOrgData = () => {
-  return getAllOrg().then(res => {
+  return orgGetlistById(userStroe.userInfo.organization.parent_id).then(res => {
     if (res.code === 200) {
       orgList.value = res.data.filter(item => !item.is_deleted);
     }
@@ -58,7 +62,7 @@ const onSearch = () => {
     ElMessage.info("请输入需要查询的账号");
     return;
   }
-  getAccountByAccount(formInline.account)
+  getAccountByName(formInline.account)
     .then(res => {
       if (res.code === 200) {
         if (res.data) {
@@ -145,9 +149,6 @@ const handleCreateAccount = () => {
   } else if (!cloneData.phone) {
     ElMessage("请填写手机");
     return;
-  } else if (!cloneData.email) {
-    ElMessage("请填写邮箱");
-    return;
   } else if (!cloneData.password && !isEdit.value) {
     ElMessage("请填写密码");
     return;
@@ -163,11 +164,15 @@ const handleCreateAccount = () => {
     ElMessage("请填写正确邮箱");
     return;
   }
+  if (!cloneData.organization_id) {
+    ElMessage("请选择组织");
+    return;
+  }
   const flag = isEdit.value;
   const func = flag ? postAccountUpdate : createAccount;
   let data: any = Object.assign({}, dialogData.value);
   if (data.organization_id) {
-    data.organization.id = data.organization_id;
+    data.organization_id = data.organization_id;
   }
   if (flag) delete data.password;
   func({ ...data })
@@ -211,17 +216,17 @@ const handleUnlock = (item: any) => {
   });
   let data = Object.assign({}, dialogData.value);
   delete data.password;
-  postAccountUpdate({ ...data, is_lock: false })
+  postAccountUpdate({ ...data, is_lock: !item.is_lock })
     .then(res => {
       if (res.code === 200) {
-        ElMessage.success("解锁成功");
+        ElMessage.success("操作成功");
         getlistData();
       } else {
-        ElMessage.error("解锁失败");
+        ElMessage.error("操作失败");
       }
     })
     .catch(err => {
-      ElMessage.error(err?.response?.data?.msg || "解锁失败");
+      ElMessage.error(err?.response?.data?.msg || "操作失败");
     });
 };
 
@@ -320,15 +325,17 @@ onMounted(() => {
       <el-table-column prop="email" label="邮箱" />
       <el-table-column label="帐号是否被锁">
         <template #default="scope">
-          {{ scope.row.is_lock ? "是" : "否" }}
-          <el-button
-            class="ml-1"
-            @click="handleUnlock(scope.rwo)"
-            type="warning"
-            link
-            v-if="scope.row.is_lock && actions.includes('UpdateAccount')"
-            >解锁</el-button
-          >
+          <div class="flex items-center">
+            {{ scope.row.is_lock ? "是" : "否" }}
+            <el-button
+              v-if="actions.includes('UpdateAccount')"
+              class="ml-1"
+              :type="scope.row.is_lock ? 'danger' : 'success'"
+              link
+              @click="handleUnlock(scope.row)"
+              >{{ scope.row.is_lock ? "解锁" : "锁住" }}</el-button
+            >
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="创建时间">
@@ -392,9 +399,9 @@ onMounted(() => {
     </el-table>
     <div class="mt-4 flex justify-end">
       <el-pagination
-        class="flex-wrap gap-y-2"
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
+        class="flex-wrap gap-y-2"
         :page-sizes="[10, 20, 30, 40]"
         background
         layout="total, sizes, prev, pager, next, jumper"
@@ -408,8 +415,8 @@ onMounted(() => {
       v-model="dialogVisible"
       :title="isEdit ? '账号信息' : '创建账号'"
       width="400"
-      @closed="handleCancelCrete"
       align-center
+      @closed="handleCancelCrete"
     >
       <el-form
         label-position="right"
@@ -418,8 +425,8 @@ onMounted(() => {
       >
         <el-form-item label="账号">
           <el-input
-            :disabled="isEdit"
             v-model="dialogData.account"
+            :disabled="isEdit"
             placeholder="请输入账号"
             clearable
           />
@@ -446,7 +453,7 @@ onMounted(() => {
             clearable
           />
         </el-form-item>
-        <el-form-item label="密码" v-if="!isEdit">
+        <el-form-item v-if="!isEdit" label="密码">
           <el-input
             v-model="dialogData.password"
             placeholder="请输入密码"
@@ -481,8 +488,8 @@ onMounted(() => {
       v-model="pwdDialog"
       title="修改密码"
       width="400"
-      @closed="handleCancelPwd"
       align-center
+      @closed="handleCancelPwd"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="新密码">

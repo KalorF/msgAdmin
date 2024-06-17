@@ -319,12 +319,12 @@ const showBar = ref(false);
               v-if="activeItem && activeItem.id === item.id"
               class="w-1 h-full absolute left-0 bg-[#FF9912]"
             ></div>
-            <!-- <el-icon
-              class="!absolute top-0.5 left-2"
-              size="16"
-              :color="'#FF9912'"
-              ><Collection
-            /></el-icon> -->
+            <div
+              class="absolute left-0 top-0 text-gray-500 text-xs scale-75"
+              v-if="item.just_show_for_admin"
+            >
+              *仅管理员可见
+            </div>
             <div class="p-4 pt-4 pr-2">
               <p class="text-sm text-zinc-900 flex items-center">
                 <span class="mr-2">{{ item.name }}</span>
@@ -408,6 +408,12 @@ const showBar = ref(false);
                 v-if="activeItem && activeItem.id === item.id"
                 class="w-1 h-full absolute left-0 bg-[#FF9912]"
               ></div>
+              <div
+                class="absolute left-0 top-0 text-gray-500 text-xs scale-75"
+                v-if="item.just_show_for_admin"
+              >
+                *仅管理员可见
+              </div>
               <div class="p-4 pt-4 pr-2">
                 <p class="text-sm text-zinc-900 flex items-center">
                   <span class="mr-2">{{ item.name }}</span>
@@ -469,7 +475,7 @@ const showBar = ref(false);
           <div
             v-for="item in list"
             :key="item.id"
-            class="rounded-lg border border-orange-100 w-[260px] h-[100px] shadow-sm shadow-orange-100 flex flex-col overflow-hidden hover:shadow-orange-200 hover:shadow-md transition-all"
+            class="rounded-lg border relative border-orange-100 w-[260px] h-[100px] shadow-sm shadow-orange-100 flex flex-col overflow-hidden hover:shadow-orange-200 hover:shadow-md transition-all"
           >
             <div class="flex items-center w-full mt-2 px-3">
               <el-icon size="18" class="!text-amber-500"><PriceTag /></el-icon>
@@ -511,6 +517,12 @@ const showBar = ref(false);
                 @click.stop="handleDelCourse(item.id)"
                 ><Delete
               /></el-icon>
+            </div>
+            <div
+              class="absolute bottom-0 left-0 text-gray-500 text-xs scale-75"
+              v-if="item.just_show_for_admin"
+            >
+              *仅管理员可见
             </div>
           </div>
         </template>

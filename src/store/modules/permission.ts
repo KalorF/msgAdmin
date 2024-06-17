@@ -49,7 +49,7 @@ export const usePermissionStore = defineStore({
       );
       if (Object.keys(this.policies).length) {
         const { resources } = this.policies;
-        const hasRes = resources.map(i => i.name) || [];
+        const hasRes = (resources && resources.map(i => i.name)) || [];
         const list = [];
         hasRes.map(item => {
           if (resourceMap[item]) {

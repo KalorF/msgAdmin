@@ -45,6 +45,7 @@ const uploadEdit = ref(false);
 const curCourseInfo = ref(null);
 const exectUpload = ref(false);
 const fileList = ref([]);
+const uploading = ref(false);
 
 const getList = () => {
   if (props.courseId) {
@@ -172,6 +173,7 @@ const handleUpload = async () => {
     });
     upload.value.cover_url = postUrl.split("?").shift();
   }
+  uploading.value = true;
   const ext = upload.value.cover_url.split(".").pop();
   let mapUrl = { image_url: "", pdf_url: "", video_url: "" };
   if (ext.indexOf("pdf") > -1) {
@@ -205,6 +207,9 @@ const handleUpload = async () => {
         err?.response?.data?.message ||
           (uploadEdit.value ? "修改失败" : "上传失败")
       );
+    })
+    .finally(() => {
+      uploading.value = false;
     });
 };
 
@@ -386,9 +391,12 @@ onMounted(() => {
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="handleUpload">{{
-            uploadEdit ? "确认修改" : "创建章节"
-          }}</el-button>
+          <el-button
+            :loading="uploading"
+            type="primary"
+            @click="handleUpload"
+            >{{ uploadEdit ? "确认修改" : "创建章节" }}</el-button
+          >
           <el-button @click="handleCloseUpload">取消</el-button>
         </div>
       </template>

@@ -40,12 +40,12 @@ export const refreshTokenApi = (data?: object) => {
 
 export const getpolicy = () => {
   return http.request<any>("get", "/api/auth/policies", {});
-}
+};
 
 export const getPolicyByUserId = (data: any) => {
   return http.request<any>("post", "/api/auth/users/policies", { data });
-}
+};
 
 export const policyUpsert = (data: any) => {
-  return http.request<any>('post', '/api/auth/policy/upsert', { data });
-}
+  return http.request<any>("post", "/api/auth/policy/upsert", { data });
+};

@@ -9,8 +9,9 @@ import {
   Clock,
   Finished
 } from "@element-plus/icons-vue";
-import ExamDetail from "./ExamDetail.vue";
+// import ExamDetail from "./ExamDetail.vue";
 import dayjs from "dayjs";
+import ExamDetail from "@/views/exammg/ExamDetail.vue";
 
 const props = defineProps<{ show: boolean; info?: any }>();
 const emits = defineEmits(["close"]);
@@ -61,6 +62,21 @@ watch(
   },
   { immediate: true }
 );
+
+const showDetail = ref(false);
+const examData = ref(null);
+
+const handleBack = () => {
+  showDetail.value = false;
+  examData.value = null;
+};
+
+const handleView = (item: any) => {
+  if (item.history && item.history.length) {
+    examData.value = item.history[0];
+    showDetail.value = true;
+  }
+};
 </script>
 
 <template>
@@ -70,11 +86,15 @@ watch(
     width="600"
     @close="emits('close')"
   >
-    <div class="flex flex-wrap overflow-auto gap-3 flex-1 mt-3 max-h-90">
+    <div
+      v-if="!showDetail"
+      class="flex flex-wrap overflow-auto gap-3 flex-1 mt-3 max-h-96"
+    >
       <div
         v-for="item in list"
         :key="item.id"
         class="rounded-lg border border-slate-100 w-[260px] h-[200px] shadow-sm flex flex-col relative overflow-hidden hover:border-slate-200 hover:shadow-md transition-all"
+        @click="handleView(item)"
       >
         <div
           v-if="item.history"
@@ -86,7 +106,13 @@ watch(
         >
           {{ item.history.length ? "已考试" : "未考试" }}
         </div>
-        <el-popover
+        <div
+          v-if="item.history && item.history.length"
+          class="absolute text-sm top-0 right-0 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center py-1 px-2 bg-[#00000080]"
+        >
+          考试分数: {{ item.history[0].score }}
+        </div>
+        <!-- <el-popover
           v-if="item.history && item.history.length"
           width="260"
           placement="bottom"
@@ -116,7 +142,7 @@ watch(
               </div>
             </div>
           </template>
-        </el-popover>
+        </el-popover> -->
         <div
           class="absolute bottom-[60px] text-sm right-0 text-[#ffffff] rounded flex justify-center items-center py-1 px-2 bg-[#00000080]"
         >
@@ -140,5 +166,11 @@ watch(
         </div>
       </div>
     </div>
+    <ExamDetail
+      class="mt-[-10px] max-h-96 overflow-auto"
+      v-if="showDetail"
+      @back="handleBack"
+      :exam="examData"
+    />
   </el-dialog>
 </template>

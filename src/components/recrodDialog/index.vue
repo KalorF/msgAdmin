@@ -13,13 +13,15 @@ import { getOperateByCustomerId } from "@/api/customer";
 const props = defineProps<{ show?: boolean; info?: any }>();
 const emits = defineEmits(["close"]);
 
+const showDialog = computed(() => props.show);
+
 const activities = ref([]);
 
 const LIUZHUAN = {
   0: "入库",
   1: "重新入库",
   2: "分配",
-  3: "放弃",
+  3: "放弃客户",
   4: "分享客户",
   5: "转让客户",
   6: "删除客户"
@@ -77,7 +79,7 @@ watch(
 
 <template>
   <el-dialog
-    v-model="props.show"
+    v-model="showDialog"
     width="800"
     title="操作记录"
     :modal="false"
@@ -100,7 +102,7 @@ watch(
         <div
           class="mt-4 flex items-center rounded text-sm font-semibold text-zinc-700"
         >
-          <div class="w-2.5 h-2.5 bg-cyan-600 rounded-full mr-1"></div>
+          <div class="w-2.5 h-2.5 bg-cyan-600 rounded-full mr-1" />
           进度：{{ props.info.progress?.name }}
         </div>
         <div class="mt-4 flex gap-2 flex-wrap">
@@ -109,9 +111,9 @@ watch(
           /></el-icon> -->
           标签:
           <div
-            class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
             v-for="item in props.info.customer_tag_list"
             :key="item.id"
+            class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
           >
             {{ item.tag.name }}
           </div>
@@ -132,16 +134,46 @@ watch(
             placement="top"
           >
             <div
-              class="bg-[#f6f6f6] rounded-md px-4 py-2 text-sm"
               v-if="item.record_type === 0"
+              class="bg-[#f6f6f6] rounded-md px-4 py-2 text-sm"
             >
               {{ LIUZHUAN[item.flow_type] }}
             </div>
             <div v-else class="bg-[#f6f6f6] rounded-md px-4 py-2 text-sm">
               {{ OTHERS[item.record_type] }}
+              <div v-if="item.record_type === 3" class="mt-2 text-gray-600">
+                <div class="flex gap-1 flex-wrap text-sm">
+                  修改前:
+                  <template v-if="item.before_tag_name_list.split(',').length">
+                    <div
+                      v-for="(tag, idx) in item.before_tag_name_list
+                        .split(',')
+                        .filter(Boolean)"
+                      :key="idx"
+                      class="p-1 px-2 text-xs rounded-md bg-[#eaeaea] mr-1 text-[#303841]"
+                    >
+                      {{ tag }}
+                    </div>
+                  </template>
+                </div>
+                <div class="flex gap-1 flex-wrap text-sm mt-2">
+                  修改后:
+                  <template v-if="item.after_tag_name_list.split(',').length">
+                    <div
+                      v-for="(tag, idx) in item.after_tag_name_list
+                        .split(',')
+                        .filter(Boolean)"
+                      :key="idx"
+                      class="p-1 px-2 text-xs rounded-md bg-[#eaeaea] mr-1 text-[#303841]"
+                    >
+                      {{ tag }}
+                    </div>
+                  </template>
+                </div>
+              </div>
               <div
-                class="mt-1 text-xs text-[#444f5a] flex flex-col gap-1"
                 v-if="item.record_type === 5"
+                class="mt-1 text-xs text-[#444f5a] flex flex-col gap-1"
               >
                 <p>
                   拨打时间：{{
@@ -152,7 +184,7 @@ watch(
               </div>
             </div>
             <div class="text-zinc-400 text-xs mt-1">
-              操作者：{{ item.staff.name }}
+              操作者：{{ item.staff.name || item.staff.account }}
             </div>
           </el-timeline-item>
         </el-timeline>

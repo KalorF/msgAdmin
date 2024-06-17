@@ -54,6 +54,7 @@ const handleConfirm = () => {
         name: querViewInfo.customerName,
         phone: querViewInfo.phone,
         customer_tag_list: querViewInfo.tag.map(item => ({
+          customer_id: "0",
           tag_id: item.id,
           tag: item
         })),

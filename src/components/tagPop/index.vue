@@ -1,6 +1,11 @@
 <script lang="ts" setup>
 import { ref, onMounted, computed } from "vue";
 import { getAllGroupTag } from "@/api/tag";
+// import { useUserStoreHook } from "@/store/modules/user";
+import { usePermissionStoreHook } from "@/store/modules/permission";
+
+const permission = usePermissionStoreHook();
+const isAdmin = computed(() => permission.policies.role.RoleType === "admin");
 
 const tagList = ref([]);
 
@@ -77,7 +82,10 @@ onMounted(() => {
     </template>
     <div class="p-2 overflow-auto max-h-60">
       <div class="mb-4" v-for="item in tagList" :key="item.id">
-        <p class="mb-2 text-sm text-zinc-800 border-l-4 border-amber-500 pl-2">
+        <p
+          class="mb-2 text-sm text-zinc-800 border-l-4 border-amber-500 pl-2"
+          :class="{ hidden: item.just_show_for_admin && !isAdmin }"
+        >
           {{ item.name }}
         </p>
         <div class="flex flex-wrap content-start gap-3">
@@ -87,6 +95,7 @@ onMounted(() => {
             type="success"
             :checked="checkIds.includes(tag.id)"
             @change="handleChange(item.tag_group_type, tag, item.tag_list)"
+            :class="{ hidden: tag.just_show_for_admin && !isAdmin }"
           >
             {{ tag.name }}
           </el-check-tag>

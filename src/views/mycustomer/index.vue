@@ -43,7 +43,8 @@ import {
   Sort,
   More,
   Edit,
-  EditPen
+  EditPen,
+  Delete
 } from "@element-plus/icons-vue";
 import { onMounted, nextTick, onUnmounted, computed } from "vue";
 import { ElMessageBox } from "element-plus";
@@ -103,9 +104,11 @@ const getAllocData = () => {
 const onSubmit = async () => {
   currentPage.value = 1;
   pageSize.value = 10;
-  if (cutomerType.value) {
-    getData();
-  }
+  // if (cutomerType.value) {
+  cutomerType.value = "";
+  currentViewData.value = null;
+  getData();
+  // }
   // getData();
   // if (valueGroup.value.length) {
   //   const res = await getCustomerByTagId({ tag_id_list: valueGroup.value });
@@ -720,6 +723,14 @@ const handleShare = (item: any) => {
   orgTitle.value = "分享客户";
 };
 
+const handleCloseOrg = () => {
+  if (orgTitle.value === "转让客户") {
+    getData();
+  }
+  orgTitle.value = "";
+  orgDialogShow.value = false;
+};
+
 const handleFlowDetail = (item: any) => {
   currentCustomerInfo.value = item;
   recordDialog.value = true;
@@ -804,6 +815,162 @@ const handleConfirmTag = () => {
     });
 };
 
+const customerMsgDialog = ref(false);
+const customerMsgData = ref({
+  name: {
+    label: "客户名称",
+    value: "",
+    type: "text",
+    is_require: true
+  },
+  phone: {
+    label: "手机",
+    value: "",
+    type: "tel",
+    is_require: true
+  },
+  company: {
+    label: "公司",
+    value: "",
+    type: "text"
+  },
+  email: {
+    label: "邮箱",
+    value: "",
+    type: "text"
+  },
+  wechat: {
+    label: "微信",
+    value: "",
+    type: "text"
+  },
+  wecom: {
+    label: "企业微信",
+    value: "",
+    type: "text"
+  },
+  qq: {
+    label: "QQ",
+    value: "",
+    type: "text"
+  },
+  address: {
+    label: "地址",
+    value: "",
+    type: "textarea"
+  },
+  working_address: {
+    label: "工作地址",
+    value: "",
+    type: "textarea"
+  }
+});
+
+const customerMsgCancel = () => {
+  Object.values(customerMsgData.value).forEach(item => {
+    item.value = "";
+  });
+  isEdit.value = false;
+  currentInfo.value = null;
+  customerMsgDialog.value = false;
+};
+
+const handleEditCustomerMsg = (item: any) => {
+  Object.keys(customerMsgData.value).map(key => {
+    customerMsgData.value[key].value = item[key];
+  });
+  isEdit.value = true;
+  currentInfo.value = item;
+  customerMsgDialog.value = true;
+};
+
+const handleConfirmMsg = () => {
+  let flag = false;
+  Object.values(customerMsgData.value).some(item => {
+    if ((item as any).is_require && !item.value) {
+      message(`请输入${item.label}`, { type: "info" });
+      flag = true;
+      return true;
+    }
+  });
+  if (
+    customerMsgData.value.phone.value &&
+    !/^1[3456789]\d{9}$/.test(customerMsgData.value.phone.value)
+  ) {
+    message(`请输入正确手机号`, { type: "info" });
+    flag = true;
+  }
+  if (
+    customerMsgData.value.email.value &&
+    !/^(\w*\.*)+@(\w-?)+(\.\w{2,3}){1,2}$/.test(
+      customerMsgData.value.email.value
+    )
+  ) {
+    message(`请输入正确邮箱`, { type: "info" });
+    flag = true;
+  }
+  if (!flag) {
+    const data: any = {};
+    Object.keys(customerMsgData.value).forEach(key => {
+      data[key] = customerMsgData.value[key].value;
+    });
+    // if (isEdit.value) {
+    data.id = currentInfo.value.id;
+    // }
+    const func = customerUpte;
+    const sendData = isEdit.value
+      ? Object.assign(currentInfo.value, { ...data })
+      : { customers: [data], force: true };
+    func(sendData)
+      .then(res => {
+        if (res.code === 200) {
+          message("编辑成功", { type: "success" });
+          getData();
+          customerMsgCancel();
+        } else {
+          message("编辑失败", { type: "error" });
+        }
+      })
+      .catch(err => {
+        if (err?.response?.data?.msg) {
+          message(err?.response?.data?.msg, { type: "error" });
+        } else {
+          message("编辑失败", { type: "error" });
+        }
+      });
+    // handleCancelCrete();
+  }
+};
+
+const handleFangqi = (item: any) => {
+  ElMessageBox.confirm("确认放弃该客户吗?", "提示", {
+    confirmButtonText: "确认放弃",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      operateCreate({
+        staff_id: userStore.userInfo.id,
+        customer_id: item.id,
+        record_tyoe: RECORD_TYPE.LIUZHUAN,
+        flow_type: FLOW_TYPE.FANGQI,
+        progress_id: item.progress_id
+      })
+        .then(res => {
+          if (res.code === 200) {
+            message("操作成功", { type: "success" });
+            getData();
+          } else {
+            message("操作失败失败", { type: "error" });
+          }
+        })
+        .catch(err => {
+          message(err?.response?.data?.msg || "操作失败", { type: "error" });
+        });
+    })
+    .catch(() => {});
+};
+
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", visiableChange);
 });
@@ -876,10 +1043,10 @@ onMounted(async () => {
         <el-select
           v-model="cutomerType"
           clearable
-          @change="getViewData"
-          @clear="handleClear"
           placeholder="请选择"
           style="width: 240px"
+          @change="getViewData"
+          @clear="handleClear"
         >
           <el-option
             v-for="item in customerOption"
@@ -951,19 +1118,20 @@ onMounted(async () => {
           <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
             <el-icon
               v-if="actions.includes('UpdateCustomerAction')"
-              @click="handleEditTag(props.row)"
               class="!text-zinc-600 hover:!text-zinc-400"
               :size="18"
+              @click="handleEditTag(props.row)"
               ><EditPen
             /></el-icon>
-            <div
-              v-if="props.row.customer_tag_list"
-              class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
-              v-for="item in props.row.customer_tag_list"
-              :key="item.id"
-            >
-              {{ item.tag.name }}
-            </div>
+            <template v-if="props.row.customer_tag_list">
+              <div
+                v-for="item in props.row.customer_tag_list"
+                :key="item.id"
+                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+              >
+                {{ item.tag.name }}
+              </div>
+            </template>
           </div>
         </template>
       </el-table-column>
@@ -987,7 +1155,7 @@ onMounted(async () => {
           {{ dayjs(props.row.updated_at * 1000).format("YYYY-MM-DD HH:mm") }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" fixed="right" width="80" #default="props">
+      <el-table-column #default="props" label="操作" fixed="right" width="80">
         <el-dropdown trigger="click">
           <el-icon :size="20"><More /></el-icon>
           <template #dropdown>
@@ -998,6 +1166,12 @@ onMounted(async () => {
               <el-dropdown-item
                 v-if="actions.includes('UpdateCustomerAction')"
                 :icon="Edit"
+                @click="handleEditCustomerMsg(props.row)"
+                >编辑信息</el-dropdown-item
+              >
+              <el-dropdown-item
+                v-if="actions.includes('UpdateCustomerAction')"
+                :icon="EditPen"
                 @click="handleProgress(props.row)"
                 >修改进度</el-dropdown-item
               >
@@ -1017,6 +1191,12 @@ onMounted(async () => {
                 :icon="Share"
                 @click="handleShare(props.row)"
                 >分享客户</el-dropdown-item
+              >
+              <el-dropdown-item
+                v-if="actions.includes('UpdateCustomerAction')"
+                :icon="Delete"
+                @click="handleFangqi(props.row)"
+                >放弃客户</el-dropdown-item
               >
             </el-dropdown-menu>
           </template>
@@ -1040,9 +1220,9 @@ onMounted(async () => {
     </el-table>
     <div class="mt-4 flex justify-end">
       <el-pagination
-        class="flex-wrap gap-y-2"
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
+        class="flex-wrap gap-y-2"
         :page-sizes="[10, 20, 30, 40]"
         background
         layout="total, sizes, prev, pager, next, jumper"
@@ -1056,14 +1236,14 @@ onMounted(async () => {
       v-model="dialogVisible"
       title="回访记录"
       width="400"
-      @closed="handleCancelCrete"
       align-center
+      @closed="handleCancelCrete"
     >
       <el-form label-position="top" class="demo-form-inline">
         <el-form-item
-          :label="item.label"
           v-for="(item, key) in dialogData"
           :key="key"
+          :label="item.label"
         >
           <el-date-picker
             v-if="item.type === 'datetime'"
@@ -1095,14 +1275,14 @@ onMounted(async () => {
       v-model="dialogVisible2"
       title="访客记录"
       width="400"
-      @closed="handleCancelCrete2"
       align-center
+      @closed="handleCancelCrete2"
     >
       <el-form label-position="top" class="demo-form-inline">
         <el-form-item
-          :label="item.label"
           v-for="(item, key) in dialogData2"
           :key="key"
+          :label="item.label"
         >
           <el-date-picker
             v-if="item.type === 'datetime'"
@@ -1131,7 +1311,7 @@ onMounted(async () => {
     </el-dialog>
 
     <el-dialog v-model="dialogTableVisible" title="回访记录" width="450">
-      <el-button size="small" @click="dialogVisible = true" class="mb-2"
+      <el-button size="small" class="mb-2" @click="dialogVisible = true"
         >添加记录</el-button
       >
       <el-table
@@ -1155,8 +1335,8 @@ onMounted(async () => {
       </el-table>
       <el-pagination
         v-if="total2"
-        class="flex-wrap gap-y-2 mt-4"
         v-model:current-page="currentPage2"
+        class="flex-wrap gap-y-2 mt-4"
         background
         layout="total, prev, pager, next, jumper"
         :total="total3"
@@ -1165,7 +1345,7 @@ onMounted(async () => {
     </el-dialog>
 
     <el-dialog v-model="dialogTableVisible2" title="访客记录" width="450">
-      <el-button size="small" @click="dialogVisible2 = true" class="mb-2"
+      <el-button size="small" class="mb-2" @click="dialogVisible2 = true"
         >添加记录</el-button
       >
       <el-table
@@ -1189,8 +1369,8 @@ onMounted(async () => {
       </el-table>
       <el-pagination
         v-if="total3"
-        class="flex-wrap gap-y-2 mt-4"
         v-model:current-page="currentPage3"
+        class="flex-wrap gap-y-2 mt-4"
         background
         layout="total, prev, pager, next, jumper"
         :total="total2"
@@ -1219,8 +1399,8 @@ onMounted(async () => {
       </el-table>
       <el-pagination
         v-if="callTtoal"
-        class="flex-wrap gap-y-2 mt-4"
         v-model:current-page="currentPage3"
+        class="flex-wrap gap-y-2 mt-4"
         background
         layout="total, prev, pager, next, jumper"
         :total="callTtoal"
@@ -1236,32 +1416,32 @@ onMounted(async () => {
     <orgDialog
       :show="orgDialogShow"
       :info="currentCustomerInfo"
-      @close="orgDialogShow = false"
       :title="orgTitle"
+      @close="handleCloseOrg"
     />
     <progressDialog
       :show="progressDialogShow"
       :info="currentCustomerInfo"
+      :title="'修改进度'"
       @close="progressDialogShow = false"
       @confirm="handleProgressConfrim"
-      :title="'修改进度'"
     />
 
     <el-dialog
       v-model="tagDialogVisiable"
       title="设置标签"
-      @closed="handleTagCancel"
       width="350"
+      @closed="handleTagCancel"
     >
       <el-form inline>
         <el-form-item label="标签">
           <tagPop :checkedItems="tagGroupCheckitems" @change="tagGroupChange">
             <el-input
-              placeholder="请选择标签"
               v-model="tagGroup"
+              placeholder="请选择标签"
               clearable
               readonly
-            ></el-input>
+            />
           </tagPop>
         </el-form-item>
       </el-form>
@@ -1269,6 +1449,39 @@ onMounted(async () => {
         <div class="dialog-footer">
           <el-button @click="handleTagCancel">取消</el-button>
           <el-button type="primary" @click="handleConfirmTag"> 确认 </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="customerMsgDialog"
+      :title="'客户信息'"
+      width="400"
+      align-center
+      @closed="customerMsgCancel"
+    >
+      <div class="overflow-auto" style="max-height: 400px">
+        <el-form label-position="right" class="demo-form-inline">
+          <el-form-item
+            v-for="(item, key) in customerMsgData"
+            :key="key"
+            :label="item.label"
+          >
+            <el-input
+              v-model="item.value"
+              :type="item.type"
+              :placeholder="'请输入' + item.label"
+              clearable
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="customerMsgCancel">取消</el-button>
+          <el-button type="primary" @click="handleConfirmMsg">
+            确认修改
+          </el-button>
         </div>
       </template>
     </el-dialog>
