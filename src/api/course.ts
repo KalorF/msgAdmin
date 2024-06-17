@@ -22,28 +22,30 @@ export const postGroupCourseUpdate = (data: any) => {
 
 export const createCourse = (data: any) => {
   return http.request<any>("post", "/api/course/create", { data });
-}
+};
 
 export const delCourse = (id: string) => {
-  return http.request<any>("post", `/api/course/delete/${id}`, { data: { id } });
-}
+  return http.request<any>("post", `/api/course/delete/${id}`, {
+    data: { id }
+  });
+};
 
 export const getCourseById = (id: string) => {
-  return http.request<any>("get", `/api/course/get/${id}`, { });
-}
+  return http.request<any>("get", `/api/course/get/${id}`, {});
+};
 
 export const getCourseList = (data: any) => {
-  return http.request<any>("post", `/api/course/list`, { data});
-}
+  return http.request<any>("post", `/api/course/list`, { data });
+};
 
 export const getCourseListByGroup = (group_id: string) => {
-  return http.request<any>("get", `/api/course/list/${group_id}`, {  });
-}
+  return http.request<any>("get", `/api/course/list/${group_id}`, {});
+};
 
 export const updateCourse = (data: any) => {
   return http.request<any>("post", `/api/course/update`, { data });
-}
+};
 
 export const getAllCourse = () => {
-  return http.request<any>("get", `/api/course/all`, { });
-}
+  return http.request<any>("get", `/api/course/all`, {});
+};

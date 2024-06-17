@@ -10,20 +10,20 @@ export const delOrg = (id: string) => {
 
 export const orgGet = () => {
   return http.request<any>("get", `/api/organization/get`, {});
-}
+};
 
 export const orgGetById = (id: string) => {
   return http.request<any>("get", `/api/organization/get/${id}`, {});
-}
+};
 
 export const orgGetlistById = (id: string) => {
   return http.request<any>("get", `/api/organization/list/${id}`, {});
-}
+};
 
-export const updateOrg = (data) => {
+export const updateOrg = (data: any) => {
   return http.request<any>("post", `/api/organization/update`, { data });
-}
+};
 
 export const getAllOrg = () => {
-    return http.request<any>("get", `/api/organization/all`, {});
-}
+  return http.request<any>("get", `/api/organization/all`, {});
+};

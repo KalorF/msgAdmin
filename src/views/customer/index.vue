@@ -972,8 +972,8 @@ onMounted(() => {
         >配置客户视图查询</el-button
       >
       <div
-        class="ml-auto flex flex-wrap gap-1 relative max-phone:mt-2"
         v-if="activeValue === 'has'"
+        class="ml-auto flex flex-wrap gap-1 relative max-phone:mt-2"
       >
         <el-button
           v-if="actions.includes('CreateCustomerAction')"
@@ -1091,19 +1091,20 @@ onMounted(() => {
             <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
               <el-icon
                 v-if="actions.includes('UpdateCustomerAction')"
-                @click="handleEditTag(props.row)"
                 class="!text-zinc-600 hover:!text-zinc-400"
                 :size="18"
+                @click="handleEditTag(props.row)"
                 ><EditPen
               /></el-icon>
-              <div
-                v-if="props.row.customer_tag_list"
-                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
-                v-for="item in props.row.customer_tag_list"
-                :key="item.id"
-              >
-                {{ item.tag.name }}
-              </div>
+              <template v-if="props.row.customer_tag_list">
+                <div
+                  v-for="item in props.row.customer_tag_list"
+                  :key="item.id"
+                  class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                >
+                  {{ item.tag.name }}
+                </div>
+              </template>
             </div>
           </template>
         </el-table-column>
@@ -1117,7 +1118,7 @@ onMounted(() => {
             {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="80" #default="props">
+        <el-table-column #default="props" label="操作" fixed="right" width="80">
           <el-dropdown trigger="click">
             <el-icon :size="20"><More /></el-icon>
             <template #dropdown>
@@ -1133,7 +1134,7 @@ onMounted(() => {
                   @click="handleFlowDetail(props.row)"
                   >操作记录</el-dropdown-item
                 >
-                <el-dropdown-item
+                <!-- <el-dropdown-item
                   v-if="actions.includes('UpdateCustomerAction')"
                   :icon="Sort"
                   @click="handleTran(props.row)"
@@ -1144,7 +1145,7 @@ onMounted(() => {
                   :icon="Share"
                   @click="handleShare(props.row)"
                   >分享客户</el-dropdown-item
-                >
+                > -->
                 <el-dropdown-item
                   v-if="actions.includes('CreateCustomerAction')"
                   :icon="Delete"
@@ -1192,9 +1193,9 @@ onMounted(() => {
       </el-table>
       <div class="mt-4 flex justify-end">
         <el-pagination
-          class="flex-wrap gap-y-2"
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
+          class="flex-wrap gap-y-2"
           :page-sizes="[10, 20, 30, 40]"
           background
           layout="total, sizes, prev, pager, next, jumper"
@@ -1210,15 +1211,15 @@ onMounted(() => {
       v-model="dialogVisible"
       :title="isEdit ? '客户信息' : '添加客户'"
       width="400"
-      @closed="handleCancelCrete"
       align-center
+      @closed="handleCancelCrete"
     >
       <div class="overflow-auto" style="max-height: 400px">
         <el-form label-position="right" class="demo-form-inline">
           <el-form-item
-            :label="item.label"
             v-for="(item, key) in dialogData"
             :key="key"
+            :label="item.label"
           >
             <el-input
               v-model="item.value"
@@ -1240,7 +1241,7 @@ onMounted(() => {
     </el-dialog>
 
     <el-dialog v-model="dialogTableVisible" title="回访记录" width="500">
-      <el-button size="small" @click="dialogVisible2 = true" class="mb-2"
+      <el-button size="small" class="mb-2" @click="dialogVisible2 = true"
         >添加记录</el-button
       >
       <el-table
@@ -1279,8 +1280,8 @@ onMounted(() => {
       </el-table>
       <el-pagination
         v-if="total2"
-        class="flex-wrap gap-y-2 mt-4"
         v-model:current-page="currentPage2"
+        class="flex-wrap gap-y-2 mt-4"
         background
         layout="total, prev, pager, next, jumper"
         :total="total2"
@@ -1289,7 +1290,7 @@ onMounted(() => {
     </el-dialog>
 
     <el-dialog v-model="dialogTableVisible2" title="访客记录" width="500">
-      <el-button size="small" @click="dialogVisible3 = true" class="mb-2"
+      <el-button size="small" class="mb-2" @click="dialogVisible3 = true"
         >添加记录</el-button
       >
       <el-table
@@ -1328,8 +1329,8 @@ onMounted(() => {
       </el-table>
       <el-pagination
         v-if="total3"
-        class="flex-wrap gap-y-2 mt-4"
         v-model:current-page="currentPage3"
+        class="flex-wrap gap-y-2 mt-4"
         background
         layout="total, prev, pager, next, jumper"
         :total="total3"
@@ -1339,9 +1340,9 @@ onMounted(() => {
 
     <el-dialog
       v-model="mulDialogVisiable"
-      @closed="handleMulCancel"
       title="批量导入"
       width="500"
+      @closed="handleMulCancel"
     >
       <el-table
         header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
@@ -1357,14 +1358,15 @@ onMounted(() => {
         <el-table-column label="客户标签" width="160">
           <template #default="props">
             <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
-              <div
-                v-if="props.row.customer_tag_list"
-                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
-                v-for="item in props.row.customer_tag_list"
-                :key="item.id"
-              >
-                {{ item.name }}
-              </div>
+              <template v-if="props.row.customer_tag_list">
+                <div
+                  v-for="item in props.row.customer_tag_list"
+                  :key="item.id"
+                  class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                >
+                  {{ item.name }}
+                </div>
+              </template>
             </div>
           </template>
         </el-table-column>
@@ -1378,7 +1380,7 @@ onMounted(() => {
       </el-table>
       <template #footer>
         <div class="dialog-footer">
-          <el-checkbox class="!mr-2" v-model="isFrocemul">是否覆盖</el-checkbox>
+          <el-checkbox v-model="isFrocemul" class="!mr-2">是否覆盖</el-checkbox>
           <el-button @click="handleMulCancel">取消</el-button>
           <el-button type="primary" @click="handleConfirmImport">
             确认导入
@@ -1390,19 +1392,19 @@ onMounted(() => {
     <el-dialog
       v-model="tagDialogVisiable"
       title="设置标签"
-      @closed="handleTagCancel"
       width="350"
+      @closed="handleTagCancel"
     >
       <el-form inline>
         <el-form-item label="标签">
           <tagPop :checkedItems="tagGroupCheckitems" @change="tagGroupChange">
             <el-input
+              v-model="tagGroup"
               style="width: 280px"
               placeholder="请选择标签"
-              v-model="tagGroup"
               clearable
               readonly
-            ></el-input>
+            />
           </tagPop>
         </el-form-item>
       </el-form>
@@ -1418,14 +1420,14 @@ onMounted(() => {
       v-model="dialogVisible2"
       title="回访记录"
       width="400"
-      @closed="handleCancelCrete2"
       align-center
+      @closed="handleCancelCrete2"
     >
       <el-form label-position="top" class="demo-form-inline">
         <el-form-item
-          :label="item.label"
           v-for="(item, key) in dialogData2"
           :key="key"
+          :label="item.label"
         >
           <el-date-picker
             v-if="item.type === 'datetime'"
@@ -1457,14 +1459,14 @@ onMounted(() => {
       v-model="dialogVisible3"
       title="访客记录"
       width="400"
-      @closed="handleCancelCrete3"
       align-center
+      @closed="handleCancelCrete3"
     >
       <el-form label-position="top" class="demo-form-inline">
         <el-form-item
-          :label="item.label"
           v-for="(item, key) in dialogData3"
           :key="key"
+          :label="item.label"
         >
           <el-date-picker
             v-if="item.type === 'datetime'"
@@ -1523,8 +1525,8 @@ onMounted(() => {
       </el-table>
       <el-pagination
         v-if="callTtoal"
-        class="flex-wrap gap-y-2 mt-4"
         v-model:current-page="currentPage3"
+        class="flex-wrap gap-y-2 mt-4"
         background
         layout="total, prev, pager, next, jumper"
         :total="callTtoal"
@@ -1539,8 +1541,8 @@ onMounted(() => {
     <orgDialog
       :show="orgDialogShow"
       :info="currentInfo"
-      @close="orgDialogShow = false"
       :title="orgTitle"
+      @close="orgDialogShow = false"
     />
     <queryViewDialog
       :show="queryViewDialogShow"

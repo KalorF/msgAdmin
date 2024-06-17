@@ -9,23 +9,26 @@ import {
   postAccountUpdateStaffPwd,
   getAccountByName
 } from "@/api/account";
-import { getAllOrg } from "@/api/organization";
+import { getAllOrg, orgGetlistById } from "@/api/organization";
 import { ref, reactive, onMounted, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
 import policyDialog from "@/components/policy/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
+import { useUserStoreHook } from "@/store/modules/user";
 
 defineOptions({
   name: "accountlist"
 });
+
+const userStroe = useUserStoreHook();
 
 const orgList = ref([]);
 const permission = usePermissionActionStroe();
 const actions = computed(() => permission.value);
 
 const getallOrgData = () => {
-  return getAllOrg().then(res => {
+  return orgGetlistById(userStroe.userInfo.organization.parent_id).then(res => {
     if (res.code === 200) {
       orgList.value = res.data.filter(item => !item.is_deleted);
     }
@@ -325,11 +328,11 @@ onMounted(() => {
           <div class="flex items-center">
             {{ scope.row.is_lock ? "是" : "否" }}
             <el-button
+              v-if="actions.includes('UpdateAccount')"
               class="ml-1"
-              @click="handleUnlock(scope.row)"
               :type="scope.row.is_lock ? 'danger' : 'success'"
               link
-              v-if="actions.includes('UpdateAccount')"
+              @click="handleUnlock(scope.row)"
               >{{ scope.row.is_lock ? "解锁" : "锁住" }}</el-button
             >
           </div>
@@ -396,9 +399,9 @@ onMounted(() => {
     </el-table>
     <div class="mt-4 flex justify-end">
       <el-pagination
-        class="flex-wrap gap-y-2"
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
+        class="flex-wrap gap-y-2"
         :page-sizes="[10, 20, 30, 40]"
         background
         layout="total, sizes, prev, pager, next, jumper"
@@ -412,8 +415,8 @@ onMounted(() => {
       v-model="dialogVisible"
       :title="isEdit ? '账号信息' : '创建账号'"
       width="400"
-      @closed="handleCancelCrete"
       align-center
+      @closed="handleCancelCrete"
     >
       <el-form
         label-position="right"
@@ -422,8 +425,8 @@ onMounted(() => {
       >
         <el-form-item label="账号">
           <el-input
-            :disabled="isEdit"
             v-model="dialogData.account"
+            :disabled="isEdit"
             placeholder="请输入账号"
             clearable
           />
@@ -450,7 +453,7 @@ onMounted(() => {
             clearable
           />
         </el-form-item>
-        <el-form-item label="密码" v-if="!isEdit">
+        <el-form-item v-if="!isEdit" label="密码">
           <el-input
             v-model="dialogData.password"
             placeholder="请输入密码"
@@ -485,8 +488,8 @@ onMounted(() => {
       v-model="pwdDialog"
       title="修改密码"
       width="400"
-      @closed="handleCancelPwd"
       align-center
+      @closed="handleCancelPwd"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="新密码">
