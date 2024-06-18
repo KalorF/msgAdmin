@@ -177,11 +177,13 @@ const valueGroup = ref([]);
 const options = ref([]);
 
 const tagAllTags = ref([]);
+const cloneAllTags = ref([]);
 
 const getAllTagsData = () => {
   getAllGroupTag()
     .then(res => {
       if (res.code === 200) {
+        cloneAllTags.value = res.data;
         const data = [];
         res.data.forEach(item => {
           data.push(...item.tag_list);
@@ -684,9 +686,20 @@ const exportExcel = async () => {
   worksheet.getCell("G1").value = "QQ";
   worksheet.getCell("H1").value = "地址";
   worksheet.getCell("I1").value = "工作地址";
-  worksheet.getCell("J1").value = "客户标签";
+  // worksheet.getCell("J1").value = "客户标签";
+  cloneAllTags.value.forEach((item, index) => {
+    if (item.tag_list && item.tag_list.length) {
+      worksheet.getCell(
+        String.fromCharCode("I".charCodeAt(0) + index + 1) + "1"
+      ).value = item.name;
+    }
+  });
   // const dropdownOptions1 = ["微信", "支付宝", "酷酷酷"];
-  const dropdownOptions = tagAllTags.value.map(item => item.name);
+  // const dropdownOptions = tagAllTags.value.map(item => item.name);
+
+  const names = cloneAllTags.value.map(item => {
+    return item.tag_list && item.tag_list.length && item.tag_list[0].name;
+  });
 
   worksheet.addRow([
     "测试客户",
@@ -698,12 +711,21 @@ const exportExcel = async () => {
     "88888",
     "深圳市南山区",
     "深圳市南山区",
-    dropdownOptions[0]
+    ...names
   ]);
 
   const worksheet2 = workbook.addWorksheet("Sheet2");
 
-  worksheet2.getColumn("A").values = dropdownOptions;
+  worksheet2.getColumn("A").values = cloneAllTags.value[0].tag_list.map(
+    item => item.name
+  );
+
+  const sliceData = cloneAllTags.value.slice(1);
+  sliceData.map((item, index) => {
+    worksheet2.getColumn(
+      String.fromCharCode("A".charCodeAt(0) + index + 1)
+    ).values = item.tag_list.map(i => i.name);
+  });
 
   const col = worksheet.getColumn("J");
   col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
@@ -713,6 +735,25 @@ const exportExcel = async () => {
       // 多选配置
       formulae: ["=Sheet2!$A:$A"]
     };
+  });
+
+  sliceData.map((item, index) => {
+    const col = worksheet.getColumn(
+      String.fromCharCode("J".charCodeAt(0) + index + 1)
+    );
+    col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+      cell.dataValidation = {
+        type: "list",
+        allowBlank: true,
+        // 多选配置
+        formulae: [
+          "=Sheet2!$" +
+            String.fromCharCode("A".charCodeAt(0) + index + 1) +
+            ":$" +
+            String.fromCharCode("A".charCodeAt(0) + index + 1)
+        ]
+      };
+    });
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
@@ -763,11 +804,24 @@ const handleMul = () => {
       const ws = XLSX.utils.sheet_to_json(workbook.Sheets[wsname]); // 生成 JSON 格式的表格内容
       if (ws.length) {
         const data = replaceKey(ws);
+        const names = cloneAllTags.value.map(item => {
+          return item.tag_list && item.tag_list.length && item.name;
+        });
         data.forEach(item => {
-          const tags = item.customer_tag_list.split(",");
-          item.customer_tag_list = tagAllTags.value.filter(tag =>
-            tags.includes(tag.name)
-          );
+          const namesKey = names;
+          namesKey.map(key => {
+            const value = item[key];
+            console.log(value);
+            if (value) {
+              const tags = value.split(",");
+              if (!item.customer_tag_list) {
+                item.customer_tag_list = [];
+              }
+              item.customer_tag_list.push(
+                ...tagAllTags.value.filter(tag => tags.includes(tag.name))
+              );
+            }
+          });
         });
         mulTableData.value = data;
 

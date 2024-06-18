@@ -484,12 +484,19 @@ const showBar = ref(false);
       <div
         v-for="item in orgList"
         :key="item.id"
-        class="rounded-md hover:bg-[#f5f7fa] p-2 w-full mt-2 text-sm flex items-center"
+        class="rounded-md hover:bg-[#f5f7fa] p-2 w-full text-sm flex items-center mt-2"
         :class="{ 'bg-[#f5f7fa]': item.id === activeOrg }"
+        :style="{ paddingLeft: `${(item.level + 1) * 8}px` }"
         @click="selOrg(item.id)"
       >
         {{ item.name }}
         <div class="ml-auto flex">
+          <el-icon
+            :size="16"
+            class="!text-gray-400 hover:!text-slate-500 mr-2"
+            @click.stop="handleSubAdd(item)"
+            ><Plus
+          /></el-icon>
           <svg
             v-if="actions.includes('UpdateOrganization')"
             class="w-4 h-4 mr-2 text-gray-400 hover:text-slate-500"
