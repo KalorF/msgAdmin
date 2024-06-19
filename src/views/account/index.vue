@@ -28,7 +28,7 @@ const permission = usePermissionActionStroe();
 const actions = computed(() => permission.value);
 
 const getallOrgData = () => {
-  return orgGetlistById(userStroe.userInfo.organization.parent_id).then(res => {
+  return orgGetlistById(userStroe.userInfo.organization.id).then(res => {
     if (res.code === 200) {
       orgList.value = res.data.filter(item => !item.is_deleted);
     }

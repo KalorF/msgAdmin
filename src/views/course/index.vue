@@ -282,6 +282,7 @@ const handleUpload = async () => {
       if (res.code === 200) {
         ElMessage.success(uploadEdit.value ? "修改成功" : "上传成功");
         handleCloseUpload();
+        uploading.value = false;
         getList();
       }
     })
@@ -289,8 +290,6 @@ const handleUpload = async () => {
       ElMessage.error(
         err?.response?.data?.msg || uploadEdit.value ? "修改失败" : "上传失败"
       );
-    })
-    .finally(() => {
       uploading.value = false;
     });
 };
@@ -310,8 +309,8 @@ const showBar = ref(false);
 <template>
   <div
     v-if="showParent"
-    class="p-4 py-1 pt-3 bg-white rounded-lg flex !h-[calc(100%-30px)]"
     ref="container"
+    class="p-4 py-1 pt-3 bg-white rounded-lg flex !h-[calc(100%-30px)]"
   >
     <div class="w-[300px] h-full border-r border-r-slate-100 max-phone:hidden">
       <el-form :inline="true" :model="formInline" class="demo-form-inline">
@@ -338,33 +337,33 @@ const showBar = ref(false);
             <div
               v-if="activeItem && activeItem.id === item.id"
               class="w-1 h-full absolute left-0 bg-[#FF9912]"
-            ></div>
+            />
             <div class="p-4 pt-4 pr-2">
               <p class="text-sm text-zinc-900 flex items-center">
                 <span class="mr-2">{{ item.name }}</span>
                 <svg
                   v-if="actions.includes('UpdateCourse')"
-                  @click.stop="handleEdit(item)"
                   class="ml-auto w-4 h-4 cursor-pointer"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 1024 1024"
                   data-v-ea893728=""
+                  @click.stop="handleEdit(item)"
                 >
                   <path
                     fill="currentColor"
                     d="M832 512a32 32 0 1 1 64 0v352a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h352a32 32 0 0 1 0 64H192v640h640z"
-                  ></path>
+                  />
                   <path
                     fill="currentColor"
                     d="m469.952 554.24 52.8-7.552L847.104 222.4a32 32 0 1 0-45.248-45.248L477.44 501.44l-7.552 52.8zm422.4-422.4a96 96 0 0 1 0 135.808l-331.84 331.84a32 32 0 0 1-18.112 9.088L436.8 623.68a32 32 0 0 1-36.224-36.224l15.104-105.6a32 32 0 0 1 9.024-18.112l331.904-331.84a96 96 0 0 1 135.744 0z"
-                  ></path>
+                  />
                 </svg>
                 <el-button
                   v-if="actions.includes('DeleteCourse')"
-                  @click.stop="handleDel(item.id)"
                   type="danger"
                   size="small"
                   text
+                  @click.stop="handleDel(item.id)"
                   >删除</el-button
                 >
               </p>
@@ -374,9 +373,9 @@ const showBar = ref(false);
       </div>
     </div>
     <el-drawer
+      v-model="showBar"
       :direction="'ltr'"
       :size="320"
-      v-model="showBar"
       :with-header="false"
       :lock-scroll="false"
     >
@@ -403,33 +402,33 @@ const showBar = ref(false);
               <div
                 v-if="activeItem && activeItem.id === item.id"
                 class="w-1 h-full absolute left-0 bg-[#FF9912]"
-              ></div>
+              />
               <div class="p-4 pt-4 pr-2">
                 <p class="text-sm text-zinc-900 flex items-center">
                   <span class="mr-2">{{ item.name }}</span>
                   <svg
                     v-if="actions.includes('UpdateCourse')"
-                    @click.stop="handleEdit(item)"
                     class="ml-auto w-4 h-4 cursor-pointer"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 1024 1024"
                     data-v-ea893728=""
+                    @click.stop="handleEdit(item)"
                   >
                     <path
                       fill="currentColor"
                       d="M832 512a32 32 0 1 1 64 0v352a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h352a32 32 0 0 1 0 64H192v640h640z"
-                    ></path>
+                    />
                     <path
                       fill="currentColor"
                       d="m469.952 554.24 52.8-7.552L847.104 222.4a32 32 0 1 0-45.248-45.248L477.44 501.44l-7.552 52.8zm422.4-422.4a96 96 0 0 1 0 135.808l-331.84 331.84a32 32 0 0 1-18.112 9.088L436.8 623.68a32 32 0 0 1-36.224-36.224l15.104-105.6a32 32 0 0 1 9.024-18.112l331.904-331.84a96 96 0 0 1 135.744 0z"
-                    ></path>
+                    />
                   </svg>
                   <el-button
                     v-if="actions.includes('DeleteCourse')"
-                    @click.stop="handleDel(item.id)"
                     type="danger"
                     size="small"
                     text
+                    @click.stop="handleDel(item.id)"
                     >删除</el-button
                   >
                 </p>
@@ -463,22 +462,22 @@ const showBar = ref(false);
       >
         <template v-if="list.length">
           <div
-            @click="handleViewChapter(item)"
             v-for="item in list"
             :key="item.id"
             class="rounded-lg border border-slate-100 w-[260px] h-[200px] shadow-sm flex flex-col relative overflow-hidden hover:border-slate-200 hover:shadow-md transition-all"
+            @click="handleViewChapter(item)"
           >
             <div
               v-if="actions.includes('UpdateCourse')"
-              @click.stop="handleEditCourse(item)"
               class="absolute top-2 left-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080]"
+              @click.stop="handleEditCourse(item)"
             >
               <el-icon size="20"><Edit /></el-icon>
             </div>
             <div
               v-if="actions.includes('DeleteCourse')"
-              @click.stop="handleDelCourse(item.id)"
               class="absolute top-2 right-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080]"
+              @click.stop="handleDelCourse(item.id)"
             >
               <el-icon size="18"><Delete /></el-icon>
             </div>
@@ -503,7 +502,7 @@ const showBar = ref(false);
                       <path
                         fill="currentColor"
                         d="M128 384v512h768V192H768v32a32 32 0 1 1-64 0v-32H320v32a32 32 0 0 1-64 0v-32H128v128h768v64zm192-256h384V96a32 32 0 1 1 64 0v32h160a32 32 0 0 1 32 32v768a32 32 0 0 1-32 32H96a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h160V96a32 32 0 0 1 64 0zm-32 384h64a32 32 0 0 1 0 64h-64a32 32 0 0 1 0-64m0 192h64a32 32 0 1 1 0 64h-64a32 32 0 1 1 0-64m192-192h64a32 32 0 0 1 0 64h-64a32 32 0 0 1 0-64m0 192h64a32 32 0 1 1 0 64h-64a32 32 0 1 1 0-64m192-192h64a32 32 0 1 1 0 64h-64a32 32 0 1 1 0-64m0 192h64a32 32 0 1 1 0 64h-64a32 32 0 1 1 0-64"
-                      ></path></svg
+                      /></svg
                   ></el-icon>
                   <p class="text-xs ml-2">
                     {{
@@ -528,8 +527,8 @@ const showBar = ref(false);
       v-model="dialogVisiable"
       :title="isEdit ? '修改名称' : '创建课程分类'"
       width="400"
-      @closed="handleCancelCourse"
       align-center
+      @closed="handleCancelCourse"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="分类名称">
@@ -554,8 +553,8 @@ const showBar = ref(false);
       v-model="uploadDialog"
       :title="uploadEdit ? '修改信息' : '上传课程'"
       width="400"
-      @closed="handleCloseUpload"
       align-center
+      @closed="handleCloseUpload"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="课程名称">
@@ -597,10 +596,10 @@ const showBar = ref(false);
     </el-dialog>
   </div>
   <Chapter
-    @back="showParent = true"
+    v-else
     :group-id="activeItem && activeItem.id"
     :course-id="curCourseInfo && curCourseInfo.id"
-    v-else
+    @back="showParent = true"
   />
 </template>
 
