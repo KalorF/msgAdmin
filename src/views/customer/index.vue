@@ -34,7 +34,7 @@ import {
   Sort
 } from "@element-plus/icons-vue";
 import { onMounted, nextTick, computed } from "vue";
-import { ElMessageBox } from "element-plus";
+import { ElMessageBox, ElLoading } from "element-plus";
 import dayjs from "dayjs";
 import DelList from "./delList.vue";
 import { useUserStoreHook } from "@/store/modules/user";
@@ -45,6 +45,7 @@ import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
 import queryViewDialog from "@/components/queryViewDialog/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
+import { object } from "vue-types";
 
 defineOptions({
   name: "customerlist"
@@ -670,8 +671,7 @@ const keyMap = {
   工作地址: "working_address",
   微信: "wechat",
   邮箱: "email",
-  QQ: "qq",
-  客户标签: "customer_tag_list"
+  QQ: "qq"
 };
 
 const exportExcel = async () => {
@@ -694,8 +694,6 @@ const exportExcel = async () => {
       ).value = item.name;
     }
   });
-  // const dropdownOptions1 = ["微信", "支付宝", "酷酷酷"];
-  // const dropdownOptions = tagAllTags.value.map(item => item.name);
 
   const names = cloneAllTags.value.map(item => {
     return item.tag_list && item.tag_list.length && item.tag_list[0].name;
@@ -716,45 +714,47 @@ const exportExcel = async () => {
 
   const worksheet2 = workbook.addWorksheet("Sheet2");
 
-  worksheet2.getColumn("A").values = cloneAllTags.value[0].tag_list.map(
-    item => item.name
-  );
-
-  const sliceData = cloneAllTags.value.slice(1);
-  sliceData.map((item, index) => {
-    worksheet2.getColumn(
-      String.fromCharCode("A".charCodeAt(0) + index + 1)
-    ).values = item.tag_list.map(i => i.name);
-  });
-
-  const col = worksheet.getColumn("J");
-  col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
-    cell.dataValidation = {
-      type: "list",
-      allowBlank: true,
-      // 多选配置
-      formulae: ["=Sheet2!$A:$A"]
-    };
-  });
-
-  sliceData.map((item, index) => {
-    const col = worksheet.getColumn(
-      String.fromCharCode("J".charCodeAt(0) + index + 1)
+  if (cloneAllTags.value.length) {
+    worksheet2.getColumn("A").values = cloneAllTags.value[0].tag_list.map(
+      item => item.name
     );
+
+    const sliceData = cloneAllTags.value.slice(1);
+    sliceData.map((item, index) => {
+      worksheet2.getColumn(
+        String.fromCharCode("A".charCodeAt(0) + index + 1)
+      ).values = item.tag_list.map(i => i.name);
+    });
+
+    const col = worksheet.getColumn("J");
     col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
       cell.dataValidation = {
         type: "list",
         allowBlank: true,
         // 多选配置
-        formulae: [
-          "=Sheet2!$" +
-            String.fromCharCode("A".charCodeAt(0) + index + 1) +
-            ":$" +
-            String.fromCharCode("A".charCodeAt(0) + index + 1)
-        ]
+        formulae: ["=Sheet2!$A:$A"]
       };
     });
-  });
+
+    sliceData.map((item, index) => {
+      const col = worksheet.getColumn(
+        String.fromCharCode("J".charCodeAt(0) + index + 1)
+      );
+      col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+        cell.dataValidation = {
+          type: "list",
+          allowBlank: true,
+          // 多选配置
+          formulae: [
+            "=Sheet2!$" +
+              String.fromCharCode("A".charCodeAt(0) + index + 1) +
+              ":$" +
+              String.fromCharCode("A".charCodeAt(0) + index + 1)
+          ]
+        };
+      });
+    });
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
@@ -762,6 +762,7 @@ const exportExcel = async () => {
   });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
+  link.target = "_blank";
   link.href = url;
   link.download = `客户批量模版文件.xlsx`;
   link.click();
@@ -797,6 +798,11 @@ const handleMul = () => {
     ".xls,.xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel";
   input.onchange = (e: any) => {
     const fileread = new FileReader();
+    // 判断文件类型
+    if (!/\.xls$|\.xlsx$/.test(e.target.files[0].name.toLowerCase())) {
+      message("请导入excel", { type: "info" });
+      return;
+    }
     fileread.onload = ev => {
       const data = new Uint8Array(ev.target.result as any);
       const workbook = XLSX.read(data, { type: "array" });
@@ -804,24 +810,38 @@ const handleMul = () => {
       const ws = XLSX.utils.sheet_to_json(workbook.Sheets[wsname]); // 生成 JSON 格式的表格内容
       if (ws.length) {
         const data = replaceKey(ws);
+        const checktExcel = data[0];
+        let flag = false;
+        const keys = Object.values(keyMap);
+        // 交集
+        keys.map(key => {
+          if (!Object.keys(checktExcel).includes(key)) {
+            flag = true;
+          }
+        });
+        if (flag) {
+          message("请使用正确的模版文件", { type: "info" });
+          return;
+        }
         const names = cloneAllTags.value.map(item => {
           return item.tag_list && item.tag_list.length && item.name;
         });
         data.forEach(item => {
           const namesKey = names;
-          namesKey.map(key => {
-            const value = item[key];
-            console.log(value);
-            if (value) {
-              const tags = value.split(",");
-              if (!item.customer_tag_list) {
-                item.customer_tag_list = [];
+          if (namesKey && namesKey.length) {
+            namesKey.map(key => {
+              const value = item[key];
+              if (value) {
+                const tags = value.split(",");
+                if (!item.customer_tag_list) {
+                  item.customer_tag_list = [];
+                }
+                item.customer_tag_list.push(
+                  ...tagAllTags.value.filter(tag => tags.includes(tag.name))
+                );
               }
-              item.customer_tag_list.push(
-                ...tagAllTags.value.filter(tag => tags.includes(tag.name))
-              );
-            }
-          });
+            });
+          }
         });
         mulTableData.value = data;
 
@@ -840,11 +860,19 @@ const isFrocemul = ref(false);
 const handleConfirmImport = () => {
   const customers = mulTableData.value.map(item => {
     const data = Object.assign({}, item);
-    data.customer_tag_list = item.customer_tag_list.map(i => ({
-      tag_id: i.id,
-      tag: i
-    }));
+    if (item.customer_tag_list && item.customer_tag_list.length) {
+      data.customer_tag_list = item.customer_tag_list.map(i => ({
+        tag_id: i.id,
+        tag: i
+      }));
+    }
+    data.customer_tag_list = [];
     return data;
+  });
+  const loading = ElLoading.service({
+    lock: true,
+    text: "导入中...",
+    background: "rgba(0, 0, 0, 0.6)"
   });
   customerBatchCreate({ customers, force: isFrocemul.value })
     .then(res => {
@@ -855,9 +883,11 @@ const handleConfirmImport = () => {
       } else {
         message("导入失败", { type: "error" });
       }
+      loading.close();
     })
     .catch(err => {
       message("导入失败", { type: "error" });
+      loading.close();
     });
 };
 

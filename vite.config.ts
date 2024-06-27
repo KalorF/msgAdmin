@@ -8,14 +8,14 @@ import {
   pathResolve,
   __APP_INFO__
 } from "./build/utils";
-import  mkcert from 'vite-plugin-mkcert';
+import mkcert from "vite-plugin-mkcert";
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
     warpperEnv(loadEnv(mode, root));
   const plugins = getPluginsList(VITE_CDN, VITE_COMPRESSION);
-  // if (VITE_PORT) {
-  //   plugins.push(mkcert());
-  // }
+  if (VITE_PORT) {
+    plugins.push(mkcert());
+  }
   return {
     base: VITE_PUBLIC_PATH,
     root,
@@ -30,8 +30,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/api": {
-          target: 'http://47.113.116.191',
-          changeOrigin: true,
+          target: "http://47.113.116.191",
+          changeOrigin: true
           // rewrite: (path) => path.replace(/^\/api/, ''),
         }
       },
@@ -39,7 +39,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       warmup: {
         clientFiles: ["./index.html", "./src/{views,components}/*"]
       },
-      // https: { }
+      https: {}
     },
     plugins: plugins,
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
