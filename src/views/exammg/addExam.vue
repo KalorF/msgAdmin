@@ -8,8 +8,8 @@
         <el-button
           round
           :icon="ArrowLeft"
-          @click="emits('back')"
           class="w-[80px]"
+          @click="emits('back')"
           >返回</el-button
         >
         <el-button round @click="addtopic('select')">添加选择题</el-button>
@@ -38,9 +38,9 @@
         分钟
       </div>
       <div
-        class="mb-6 px-4 text-sm"
         v-for="(item, index) in examList"
         :key="item.uid"
+        class="mb-6 px-4 text-sm"
       >
         <div class="flex items-center">
           <div class="flex items-center">
@@ -68,22 +68,22 @@
           <div class="flex items-center">
             分数：
             <el-input-number
-              :min="1"
               v-model="item.body.score"
+              :min="1"
               style="width: 150px"
               placeholder="请输入分数"
             />
           </div>
           <div
-            class="flex mt-2"
             v-if="item.type === 'select' || item.type === 'multiSelect'"
+            class="flex mt-2"
           >
             <p>选项：</p>
             <div class="ml-1">
               <div
-                class="mb-2 flex items-center"
                 v-for="(option, optionIndex) in item.body.options"
                 :key="option.label"
+                class="mb-2 flex items-center"
               >
                 {{ option.label }}、
                 <el-input
@@ -95,21 +95,21 @@
                   class="ml-3"
                   size="small"
                   type="danger"
-                  @click="removeOption(item, optionIndex)"
                   :icon="Minus"
+                  @click="removeOption(item, optionIndex)"
                   >删除</el-button
                 >
               </div>
               <el-button round @click="addOption(item)"> 添加选项 </el-button>
             </div>
           </div>
-          <div class="flex items-center" v-if="item.type === 'fillBlank'">
+          <div v-if="item.type === 'fillBlank'" class="flex items-center">
             <p>答案：</p>
             <div class="ml-1">
               <div
-                class="mb-2 flex items-center"
                 v-for="(answer, answerIndex) in item.body.answer"
                 :key="answerIndex"
+                class="mb-2 flex items-center"
               >
                 <el-input
                   v-model="answer.value"
@@ -120,22 +120,22 @@
                   class="ml-3"
                   size="small"
                   type="danger"
-                  @click="removeAnswer(item, answerIndex)"
                   :icon="Minus"
+                  @click="removeAnswer(item, answerIndex)"
                   >删除</el-button
                 >
               </div>
               <el-button round @click="addAnswer(item)"> 添加答案 </el-button>
             </div>
           </div>
-          <div class="flex items-center" v-if="item.type !== 'fillBlank'">
+          <div v-if="item.type !== 'fillBlank'" class="flex items-center">
             <p>答案：</p>
             <template v-if="item.type === 'multiSelect'">
               <el-checkbox-group v-model="item.body.answer.value">
                 <el-checkbox
-                  :label="a.label"
                   v-for="a in item.body.answer.options"
                   :key="a.value"
+                  :label="a.label"
                   :value="a.value"
                 />
               </el-checkbox-group>
@@ -143,9 +143,9 @@
             <template v-else>
               <el-radio-group v-model="item.body.answer.value">
                 <el-radio
-                  :value="a.value"
                   v-for="a in item.body.answer.options"
                   :key="a.value"
+                  :value="a.value"
                   >{{ a.label }}</el-radio
                 >
               </el-radio-group>

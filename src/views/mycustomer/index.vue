@@ -44,7 +44,8 @@ import {
   More,
   Edit,
   EditPen,
-  Delete
+  Delete,
+  ArrowDown
 } from "@element-plus/icons-vue";
 import { onMounted, nextTick, onUnmounted, computed } from "vue";
 import { ElMessageBox } from "element-plus";
@@ -975,6 +976,8 @@ onUnmounted(() => {
   document.removeEventListener("visibilitychange", visiableChange);
 });
 
+const showMenu = ref(false);
+
 onMounted(async () => {
   initCorder();
   getData();
@@ -985,6 +988,10 @@ onMounted(async () => {
     audioSrc.value = (window.URL || webkitURL).createObjectURL(url);
   }
   document.addEventListener("visibilitychange", visiableChange);
+  const width = window.innerWidth;
+  if (width > 640) {
+    showMenu.value = true;
+  }
 });
 </script>
 
@@ -992,10 +999,26 @@ onMounted(async () => {
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)]">
     <!-- <audio controls :src="audioSrc"></audio> -->
     <!-- <input type="file" accept="audio/mp3" /> -->
-    <el-button type="primary" round class="w-40 mb-4" @click="handleGetCustomer"
-      >领取客户</el-button
+    <div class="flex items-center justify-between mb-4">
+      <el-button type="primary" round class="w-40" @click="handleGetCustomer"
+        >领取客户</el-button
+      >
+      <div
+        class="phone:hidden max-phone:flex items-center"
+        @click="showMenu = !showMenu"
+      >
+        <span class="mr-2">查询</span>
+        <el-icon class="transition-all" :class="{ 'rotate-180': showMenu }"
+          ><ArrowDown
+        /></el-icon>
+      </div>
+    </div>
+    <el-form
+      v-show="showMenu"
+      :inline="true"
+      :model="formInline"
+      class="demo-form-inline"
     >
-    <el-form :inline="true" :model="formInline" class="demo-form-inline">
       <el-form-item label="客户名称">
         <el-input
           v-model="formInline.user"
@@ -1093,9 +1116,15 @@ onMounted(async () => {
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="客户名称" width="150">
+      <el-table-column label="客户名称" width="240">
         <template #default="props">
           <div class="flex items-center">
+            <div
+              class="cursor-default text-sky-500 hover:text-sky-600 text-sm border-r border-neutral-300 pr-2 mr-2"
+              @click="handleCall(props.row)"
+            >
+              拨打电话
+            </div>
             <el-icon class="mr-1" :size="24" color="#393e46"
               ><UserFilled
             /></el-icon>

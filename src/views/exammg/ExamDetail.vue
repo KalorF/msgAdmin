@@ -18,8 +18,8 @@
       <div v-for="(single, index) in examData.single_list" :key="single.id">
         <p>{{ index + 1 }}. {{ single.base_info.question }}</p>
         <el-radio-group
-          :disabled="disabled"
           v-model="answers.single[single.id]"
+          :disabled="disabled"
         >
           <el-radio
             v-for="(choice, choiceIndex) in single.choices"
@@ -37,8 +37,8 @@
       <div v-for="(multi, index) in examData.multi_list" :key="multi.id">
         <p>{{ index + 1 }}. {{ multi.base_info.question }}</p>
         <el-checkbox-group
-          :disabled="disabled"
           v-model="answers.multi[multi.id]"
+          :disabled="disabled"
         >
           <el-checkbox
             v-for="(choice, choiceIndex) in multi.multi_choice"
@@ -55,7 +55,7 @@
       <h2>判断题</h2>
       <div v-for="(judge, index) in examData.judge_list" :key="judge.id">
         <p>{{ index + 1 }}. {{ judge.questions[0].question }}</p>
-        <el-radio-group :disabled="disabled" v-model="answers.judge[judge.id]">
+        <el-radio-group v-model="answers.judge[judge.id]" :disabled="disabled">
           <el-radio :label="true">正确</el-radio>
           <el-radio :label="false">错误</el-radio>
         </el-radio-group>
@@ -67,10 +67,10 @@
       <div v-for="(cloze, index) in examData.cloze_list" :key="cloze.id">
         <p>{{ index + 1 }}. {{ cloze.question }}</p>
         <el-input
-          :disabled="disabled"
           v-for="(item, index) in cloze.answer.answer.split(',')"
           :key="index"
           v-model="answers.cloze[cloze.id][index]"
+          :disabled="disabled"
           placeholder="请输入答案"
         />
       </div>
