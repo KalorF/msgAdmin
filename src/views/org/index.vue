@@ -520,6 +520,7 @@ const showBar = ref(false);
       >
       <div
         v-for="item in orgList"
+        v-show="item.visiable"
         :key="item.id"
         class="rounded-md hover:bg-[#f5f7fa] p-2 w-full text-sm flex items-center mt-2"
         :class="{ 'bg-[#f5f7fa]': item.id === activeOrg }"
