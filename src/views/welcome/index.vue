@@ -45,7 +45,7 @@ const getData = () => {
   }
   if (formInline.date.length) {
     data.start_time = formInline.date[0] / 1000;
-    data.end_time = Math.floor((formInline.date[1] + 86399) / 1000);
+    data.end_time = Math.floor((formInline.date[1] + 86399999) / 1000);
   }
   callRank(data).then(res => {
     if (res.code === 200) {
@@ -92,8 +92,8 @@ onMounted(() => {
 <template>
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)] w-full">
     <el-radio-group
-      class="mb-4"
       v-model="activeValue"
+      class="mb-4"
       size="small"
       fill="#ff9a00"
       @change="handleChangeActive"
@@ -167,20 +167,20 @@ onMounted(() => {
           <el-table-column label="名次" width="80">
             <template #default="props">
               <p
-                class="text-amber-300 text-xl font-semibold"
                 v-if="props.row.index === 1"
+                class="text-amber-300 text-xl font-semibold"
               >
                 {{ props.row.index }}
               </p>
               <p
-                class="text-amber-600 text-base font-semibold"
                 v-else-if="props.row.index === 2"
+                class="text-amber-600 text-base font-semibold"
               >
                 {{ props.row.index }}
               </p>
               <p
-                class="text-red-400 text-base font-semibold"
                 v-else-if="props.row.index === 3"
+                class="text-red-400 text-base font-semibold"
               >
                 {{ props.row.index }}
               </p>
@@ -196,7 +196,7 @@ onMounted(() => {
           <el-table-column prop="call_count" label="通话次数" />
           <el-table-column prop="avg_call_duration" label="平均通话时长" />
           <el-table-column prop="connect_count" label="联系客户数" />
-          <el-table-column prop="connect_rate" label="联系频率" />
+          <el-table-column prop="connect_rate" label="接通率" />
         </el-table>
       </div>
     </template>

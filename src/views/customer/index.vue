@@ -31,7 +31,9 @@ import {
   Delete,
   Memo,
   Share,
-  Sort
+  Sort,
+  FolderOpened,
+  User
 } from "@element-plus/icons-vue";
 import { onMounted, nextTick, computed } from "vue";
 import { ElMessageBox, ElLoading } from "element-plus";
@@ -45,7 +47,7 @@ import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
 import queryViewDialog from "@/components/queryViewDialog/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
-import { object } from "vue-types";
+import { getAllOrg } from "@/api/organization";
 
 defineOptions({
   name: "customerlist"
@@ -126,7 +128,8 @@ const getDataNew = () => {
         company: formInline.company,
         phone: formInline.phone,
         updated_at: formInline.date ? (formInline.date as any) / 1000 : 0,
-        customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id }))
+        customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id })),
+        owner_pool_list: checkIds.value.map(i => ({ owner_id: i }))
       }
     },
     page: {
@@ -228,8 +231,7 @@ const dialogData = ref({
   name: {
     label: "客户名称",
     value: "",
-    type: "text",
-    is_require: true
+    type: "text"
   },
   phone: {
     label: "手机",
@@ -832,6 +834,7 @@ const handleMul = () => {
             namesKey.map(key => {
               const value = item[key];
               if (value) {
+                delete item[key];
                 const tags = value.split(",");
                 if (!item.customer_tag_list) {
                   item.customer_tag_list = [];
@@ -865,8 +868,9 @@ const handleConfirmImport = () => {
         tag_id: i.id,
         tag: i
       }));
+    } else {
+      data.customer_tag_list = [];
     }
-    data.customer_tag_list = [];
     return data;
   });
   const loading = ElLoading.service({
@@ -1024,11 +1028,42 @@ const handleFlowDetail = (item: any) => {
 
 const queryViewDialogShow = ref(false);
 
+const dataSource = ref<any[]>([]);
+const treeRef = ref<any | HTMLElement>(null);
+const checkIds = ref([]);
+const allStaff = ref([]);
+const staffInputs = ref("");
+
+const treeChange = () => {
+  checkIds.value = treeRef.value.getCheckedKeys();
+  staffInputs.value = allStaff.value
+    .filter(item => checkIds.value.includes(item.id))
+    .map(i => i.name || i.account)
+    .join("、");
+};
+
+const getOrgStaffData = () => {
+  getAllOrg().then(res => {
+    if (res.data && res.data.length) {
+      dataSource.value = res.data.filter(
+        item => item.account_list && item.account_list.length
+      );
+      dataSource.value.forEach(item => {
+        if (item.account_list) {
+          item.children = item.account_list || [];
+          allStaff.value.push(...item.children);
+        }
+      });
+    }
+  });
+};
+
 onMounted(() => {
   // getData();
   // getTagOptions();
   getDataNew();
   getAllTagsData();
+  getOrgStaffData();
 });
 </script>
 
@@ -1138,6 +1173,42 @@ onMounted(() => {
               />
             </tagPop>
           </el-form-item>
+          <el-form-item label="跟进员工">
+            <el-popover
+              placement="bottom"
+              class="!rounded-lg"
+              :width="400"
+              trigger="click"
+            >
+              <template #reference>
+                <el-input v-model="staffInputs" placeholder="请选择" readonly />
+              </template>
+              <div class="overflow-auto max-h-80">
+                <el-tree
+                  ref="treeRef"
+                  style="max-width: 600px"
+                  :data="dataSource"
+                  show-checkbox
+                  node-key="id"
+                  expand-on-click-node
+                  @check="treeChange"
+                >
+                  <template #default="{ data }">
+                    <div class="flex items-center">
+                      <div class="flex items-center">
+                        <el-icon
+                          ><FolderOpened v-if="data.account_list" /><User
+                            v-else /></el-icon
+                        ><span class="ml-1">{{
+                          data.name || data.account
+                        }}</span>
+                      </div>
+                    </div>
+                  </template>
+                </el-tree>
+              </div>
+            </el-popover>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSubmit">查询</el-button>
             <el-button type="default" @click="onReset">重置</el-button>
@@ -1192,16 +1263,35 @@ onMounted(() => {
             </div>
           </template>
         </el-table-column>
+        <el-table-column label="跟进员工" width="160">
+          <template #default="props">
+            <template
+              v-if="
+                props.row.owner_pool_list && props.row.owner_pool_list.length
+              "
+            >
+              <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+                <div
+                  v-for="(item, idx) in props.row.owner_pool_list"
+                  :key="idx"
+                  class="p-1 px-2 text-xs rounded-md bg-[#f5f5f5] text-[#303841]"
+                >
+                  {{ item.staff_owner.name || item.staff_owner.account }}
+                </div>
+              </div>
+            </template>
+          </template>
+        </el-table-column>
         <el-table-column prop="phone" width="140" label="手机" />
         <el-table-column prop="company" width="180" label="公司" />
         <el-table-column prop="wechat" label="微信" />
         <el-table-column prop="wecom" label="企业微信" />
         <el-table-column prop="qq" label="QQ" />
-        <el-table-column label="添加时间" width="200" sortable>
+        <!-- <el-table-column label="添加时间" width="200" sortable>
           <template #default="props">
             {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
           </template>
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column #default="props" label="操作" fixed="right" width="80">
           <el-dropdown trigger="click">
             <el-icon :size="20"><More /></el-icon>

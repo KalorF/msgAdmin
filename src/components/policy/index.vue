@@ -6,7 +6,6 @@ import { message } from "@/utils/message";
 import { useNav } from "@/layout/hooks/useNav";
 import { useUserStoreHook } from "@/store/modules/user";
 
-
 const userStroe = useUserStoreHook();
 
 const roleMap: any = {
@@ -62,9 +61,9 @@ const actionMap = {
   ActionCreateExam: "创建考卷",
   ActionUpdateExam: "更新考卷",
   ActionDeleteExam: "删除考卷"
-}
+};
 
-const nav = useNav()
+const nav = useNav();
 
 const props = defineProps<{ show?: boolean; info?: any }>();
 const emits = defineEmits(["close", "confirm"]);
@@ -78,7 +77,7 @@ const actionCheckList = ref([]);
 const genRoleListData = (data: any) => {
   const list = [];
   data.map(item => {
-    list.push({ label: roleMap[item.RoleType], value: item.RoleType });
+    list.push({ label: item.description, value: item.name });
   });
   [list[1], list[2]] = [list[2], list[1]];
 
@@ -110,26 +109,28 @@ const handleConfirm = () => {
     policy: {
       effect: "Allow",
       role: {
-          roleType: role.value
+        roleType: role.value
       },
       resources: resourceCheckList.value.map(item => ({ name: item })),
       actions: actionCheckList.value.map(item => ({ name: item }))
     },
     uid: props.info.id
-  }).then(res => {
-    if (res.code === 200) {
-       if (props.info.id === userStroe.userInfo.id) {
+  })
+    .then(res => {
+      if (res.code === 200) {
+        if (props.info.id === userStroe.userInfo.id) {
           message("设置成功, 登陆后生效", { type: "success" });
           nav.logout();
         } else {
           message("设置成功", { type: "success" });
         }
-      emits("close");
-      emits("confirm");
-    }
-  }).catch(err => {
-    message(err?.response?.data?.msg || "设置失败", { type: "error" });
-  });
+        emits("close");
+        emits("confirm");
+      }
+    })
+    .catch(err => {
+      message(err?.response?.data?.msg || "设置失败", { type: "error" });
+    });
 };
 
 const handleCancel = () => {
@@ -143,21 +144,23 @@ const getCurrentPolicy = () => {
     if (res.code === 200 && Object.keys(res.data.policies).length) {
       const policy: any = Object.values(res.data.policies)[0];
       role.value = policy.role.RoleType;
-      resourceCheckList.value = policy.resources && policy.resources.map(item => item.name) || [];
-      actionCheckList.value = policy.actions && policy.actions.map(item => item.name) || [];
+      resourceCheckList.value =
+        (policy.resources && policy.resources.map(item => item.name)) || [];
+      actionCheckList.value =
+        (policy.actions && policy.actions.map(item => item.name)) || [];
     } else {
       role.value = rolesList.value[2].value;
       resourceCheckList.value = [];
       actionCheckList.value = [];
     }
-  })
-}
+  });
+};
 
 const getPolicyList = () => {
   return getpolicy().then(res => {
     if (res.code === 200) {
       actions.value = genAction(res.data.actions);
-      rolesList.value = genRoleListData(res.data.roles);
+      rolesList.value = genRoleListData(res.data.custom_roles);
       resources.value = genResource(res.data.resources);
     }
   });
@@ -165,7 +168,7 @@ const getPolicyList = () => {
 
 watch(
   () => props.show,
-  async (val) => {
+  async val => {
     if (val) {
       await getPolicyList();
       getCurrentPolicy();
@@ -183,34 +186,46 @@ watch(
     @close="emits('close')"
   >
     <div class="mb-4">
-      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-2"></div>账号角色</p>
+      <div class="font-semibold text-base flex items-center">
+        <p class="w-1 h-4 rounded-sm bg-amber-400 mr-2" />
+        账号角色
+      </div>
       <el-radio-group v-model="role">
-        <el-radio v-for="item in rolesList" :value="item.value">{{
-          item.label
-        }}</el-radio>
+        <el-radio
+          v-for="item in rolesList"
+          :key="item.value"
+          :value="item.value"
+          >{{ item.label }}</el-radio
+        >
       </el-radio-group>
     </div>
     <div class="mb-4">
-      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-2"></div>菜单</p>
+      <div class="font-semibold text-base flex items-center">
+        <div class="w-1 h-4 rounded-sm bg-amber-400 mr-2" />
+        菜单
+      </div>
       <el-checkbox-group v-model="resourceCheckList">
         <el-checkbox
           v-for="item in resources"
+          :key="item.value"
           :label="item.label"
           :value="item.value"
-          :key="item.value"
         />
       </el-checkbox-group>
     </div>
     <div class="mb-0">
-      <p class="font-semibold text-base flex items-center"><div class="w-1 h-4 rounded-sm bg-amber-400 mr-2"></div>操作</p>
+      <div class="font-semibold text-base flex items-center">
+        <div class="w-1 h-4 rounded-sm bg-amber-400 mr-2" />
+        操作
+      </div>
       <el-checkbox-group v-model="actionCheckList">
         <el-checkbox
           v-for="item in actions"
+          :key="item.value"
           :label="item.label"
           :value="item.value"
-          :key="item.value"
         />
-        </el-checkbox-group>  
+      </el-checkbox-group>
     </div>
     <template #footer>
       <div class="dialog-footer">

@@ -45,7 +45,7 @@ const getData = () => {
   }
   if (formInline.date.length) {
     data.start_time = formInline.date[0] / 1000;
-    data.end_time = Math.floor((formInline.date[1] + 86399) / 1000);
+    data.end_time = Math.floor((formInline.date[1] + 86399999) / 1000);
   }
   tagList(data).then(res => {
     if (res.code === 200) {
@@ -111,8 +111,8 @@ onMounted(() => {
         @change="value => (formInline.tag_id_str_list = value)"
       >
         <el-input
-          style="width: 240px"
           v-model="checkedItemsValue"
+          style="width: 240px"
           placeholder="请选择标签"
           clearable
           readonly
@@ -145,20 +145,20 @@ onMounted(() => {
       <el-table-column label="名次" width="80">
         <template #default="props">
           <p
-            class="text-amber-300 text-xl font-semibold"
             v-if="props.row.index === 1"
+            class="text-amber-300 text-xl font-semibold"
           >
             {{ props.row.index }}
           </p>
           <p
-            class="text-amber-600 text-base font-semibold"
             v-else-if="props.row.index === 2"
+            class="text-amber-600 text-base font-semibold"
           >
             {{ props.row.index }}
           </p>
           <p
-            class="text-red-400 text-base font-semibold"
             v-else-if="props.row.index === 3"
+            class="text-red-400 text-base font-semibold"
           >
             {{ props.row.index }}
           </p>
@@ -174,9 +174,9 @@ onMounted(() => {
         <template #default="props">
           <div class="flex gap-4 flex-wrap">
             <div
-              class="flex items-center"
               v-for="(item, index) in props.row.tag_count_list"
               :key="index"
+              class="flex items-center"
             >
               <div
                 class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
