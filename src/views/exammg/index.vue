@@ -108,15 +108,15 @@ onMounted(() => {
           >
             <div
               v-if="actions.includes('ActionUpdateExam')"
-              @click.stop="handleEdit(item)"
               class="absolute top-2 left-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080]"
+              @click.stop="handleEdit(item)"
             >
               <el-icon size="20"><Edit /></el-icon>
             </div>
             <div
               v-if="actions.includes('ActionDeleteExam')"
-              @click.stop="handleDel(item.id)"
               class="absolute top-2 right-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080]"
+              @click.stop="handleDel(item.id)"
             >
               <el-icon size="18"><Delete /></el-icon>
             </div>
@@ -140,7 +140,7 @@ onMounted(() => {
         </template>
       </div>
     </div>
-    <AddExam @back="handleBack" :id="currentId" v-else />
+    <AddExam v-else :id="currentId" @back="handleBack" />
   </div>
 </template>
 

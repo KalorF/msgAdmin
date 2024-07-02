@@ -28,7 +28,7 @@ const permission = usePermissionActionStroe();
 const actions = computed(() => permission.value);
 
 const getallOrgData = () => {
-  return orgGetlistById(userStroe.userInfo.organization.parent_id).then(res => {
+  return orgGetlistById(userStroe.userInfo.organization.id).then(res => {
     if (res.code === 200) {
       orgList.value = res.data.filter(item => !item.is_deleted);
     }
@@ -322,8 +322,13 @@ onMounted(() => {
       <el-table-column prop="account" label="账号" />
       <el-table-column prop="name" label="姓名" />
       <el-table-column prop="phone" label="手机" />
+      <el-table-column label="所在组织">
+        <template #default="props">
+          {{ props.row?.organization?.name }}
+        </template>
+      </el-table-column>
       <el-table-column prop="email" label="邮箱" />
-      <el-table-column label="帐号是否被锁">
+      <el-table-column label="账号是否被锁">
         <template #default="scope">
           <div class="flex items-center">
             {{ scope.row.is_lock ? "是" : "否" }}
@@ -355,7 +360,7 @@ onMounted(() => {
           >
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="240">
+      <el-table-column label="操作" width="240" fixed="right">
         <template #default="scope">
           <el-button
             v-if="actions.includes('UpdateAccount')"

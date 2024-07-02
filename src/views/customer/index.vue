@@ -31,10 +31,12 @@ import {
   Delete,
   Memo,
   Share,
-  Sort
+  Sort,
+  FolderOpened,
+  User
 } from "@element-plus/icons-vue";
 import { onMounted, nextTick, computed } from "vue";
-import { ElMessageBox } from "element-plus";
+import { ElMessageBox, ElLoading } from "element-plus";
 import dayjs from "dayjs";
 import DelList from "./delList.vue";
 import { useUserStoreHook } from "@/store/modules/user";
@@ -45,6 +47,7 @@ import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
 import queryViewDialog from "@/components/queryViewDialog/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
+import { getAllOrg } from "@/api/organization";
 
 defineOptions({
   name: "customerlist"
@@ -125,7 +128,8 @@ const getDataNew = () => {
         company: formInline.company,
         phone: formInline.phone,
         updated_at: formInline.date ? (formInline.date as any) / 1000 : 0,
-        customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id }))
+        customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id })),
+        owner_pool_list: checkIds.value.map(i => ({ owner_id: i }))
       }
     },
     page: {
@@ -177,11 +181,13 @@ const valueGroup = ref([]);
 const options = ref([]);
 
 const tagAllTags = ref([]);
+const cloneAllTags = ref([]);
 
 const getAllTagsData = () => {
   getAllGroupTag()
     .then(res => {
       if (res.code === 200) {
+        cloneAllTags.value = res.data;
         const data = [];
         res.data.forEach(item => {
           data.push(...item.tag_list);
@@ -225,8 +231,7 @@ const dialogData = ref({
   name: {
     label: "客户名称",
     value: "",
-    type: "text",
-    is_require: true
+    type: "text"
   },
   phone: {
     label: "手机",
@@ -668,8 +673,7 @@ const keyMap = {
   工作地址: "working_address",
   微信: "wechat",
   邮箱: "email",
-  QQ: "qq",
-  客户标签: "customer_tag_list"
+  QQ: "qq"
 };
 
 const exportExcel = async () => {
@@ -684,9 +688,18 @@ const exportExcel = async () => {
   worksheet.getCell("G1").value = "QQ";
   worksheet.getCell("H1").value = "地址";
   worksheet.getCell("I1").value = "工作地址";
-  worksheet.getCell("J1").value = "客户标签";
-  // const dropdownOptions1 = ["微信", "支付宝", "酷酷酷"];
-  const dropdownOptions = tagAllTags.value.map(item => item.name);
+  // worksheet.getCell("J1").value = "客户标签";
+  cloneAllTags.value.forEach((item, index) => {
+    if (item.tag_list && item.tag_list.length) {
+      worksheet.getCell(
+        String.fromCharCode("I".charCodeAt(0) + index + 1) + "1"
+      ).value = item.name;
+    }
+  });
+
+  const names = cloneAllTags.value.map(item => {
+    return item.tag_list && item.tag_list.length && item.tag_list[0].name;
+  });
 
   worksheet.addRow([
     "测试客户",
@@ -698,22 +711,52 @@ const exportExcel = async () => {
     "88888",
     "深圳市南山区",
     "深圳市南山区",
-    dropdownOptions[0]
+    ...names
   ]);
 
   const worksheet2 = workbook.addWorksheet("Sheet2");
 
-  worksheet2.getColumn("A").values = dropdownOptions;
+  if (cloneAllTags.value.length) {
+    worksheet2.getColumn("A").values = cloneAllTags.value[0].tag_list.map(
+      item => item.name
+    );
 
-  const col = worksheet.getColumn("J");
-  col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
-    cell.dataValidation = {
-      type: "list",
-      allowBlank: true,
-      // 多选配置
-      formulae: ["=Sheet2!$A:$A"]
-    };
-  });
+    const sliceData = cloneAllTags.value.slice(1);
+    sliceData.map((item, index) => {
+      worksheet2.getColumn(
+        String.fromCharCode("A".charCodeAt(0) + index + 1)
+      ).values = item.tag_list.map(i => i.name);
+    });
+
+    const col = worksheet.getColumn("J");
+    col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+      cell.dataValidation = {
+        type: "list",
+        allowBlank: true,
+        // 多选配置
+        formulae: ["=Sheet2!$A:$A"]
+      };
+    });
+
+    sliceData.map((item, index) => {
+      const col = worksheet.getColumn(
+        String.fromCharCode("J".charCodeAt(0) + index + 1)
+      );
+      col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+        cell.dataValidation = {
+          type: "list",
+          allowBlank: true,
+          // 多选配置
+          formulae: [
+            "=Sheet2!$" +
+              String.fromCharCode("A".charCodeAt(0) + index + 1) +
+              ":$" +
+              String.fromCharCode("A".charCodeAt(0) + index + 1)
+          ]
+        };
+      });
+    });
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
@@ -721,6 +764,7 @@ const exportExcel = async () => {
   });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
+  link.target = "_blank";
   link.href = url;
   link.download = `客户批量模版文件.xlsx`;
   link.click();
@@ -756,6 +800,11 @@ const handleMul = () => {
     ".xls,.xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel";
   input.onchange = (e: any) => {
     const fileread = new FileReader();
+    // 判断文件类型
+    if (!/\.xls$|\.xlsx$/.test(e.target.files[0].name.toLowerCase())) {
+      message("请导入excel", { type: "info" });
+      return;
+    }
     fileread.onload = ev => {
       const data = new Uint8Array(ev.target.result as any);
       const workbook = XLSX.read(data, { type: "array" });
@@ -763,11 +812,39 @@ const handleMul = () => {
       const ws = XLSX.utils.sheet_to_json(workbook.Sheets[wsname]); // 生成 JSON 格式的表格内容
       if (ws.length) {
         const data = replaceKey(ws);
+        const checktExcel = data[0];
+        let flag = false;
+        const keys = Object.values(keyMap);
+        // 交集
+        keys.map(key => {
+          if (!Object.keys(checktExcel).includes(key)) {
+            flag = true;
+          }
+        });
+        if (flag) {
+          message("请使用正确的模版文件", { type: "info" });
+          return;
+        }
+        const names = cloneAllTags.value.map(item => {
+          return item.tag_list && item.tag_list.length && item.name;
+        });
         data.forEach(item => {
-          const tags = item.customer_tag_list.split(",");
-          item.customer_tag_list = tagAllTags.value.filter(tag =>
-            tags.includes(tag.name)
-          );
+          const namesKey = names;
+          if (namesKey && namesKey.length) {
+            namesKey.map(key => {
+              const value = item[key];
+              if (value) {
+                delete item[key];
+                const tags = value.split(",");
+                if (!item.customer_tag_list) {
+                  item.customer_tag_list = [];
+                }
+                item.customer_tag_list.push(
+                  ...tagAllTags.value.filter(tag => tags.includes(tag.name))
+                );
+              }
+            });
+          }
         });
         mulTableData.value = data;
 
@@ -786,11 +863,20 @@ const isFrocemul = ref(false);
 const handleConfirmImport = () => {
   const customers = mulTableData.value.map(item => {
     const data = Object.assign({}, item);
-    data.customer_tag_list = item.customer_tag_list.map(i => ({
-      tag_id: i.id,
-      tag: i
-    }));
+    if (item.customer_tag_list && item.customer_tag_list.length) {
+      data.customer_tag_list = item.customer_tag_list.map(i => ({
+        tag_id: i.id,
+        tag: i
+      }));
+    } else {
+      data.customer_tag_list = [];
+    }
     return data;
+  });
+  const loading = ElLoading.service({
+    lock: true,
+    text: "导入中...",
+    background: "rgba(0, 0, 0, 0.6)"
   });
   customerBatchCreate({ customers, force: isFrocemul.value })
     .then(res => {
@@ -801,9 +887,11 @@ const handleConfirmImport = () => {
       } else {
         message("导入失败", { type: "error" });
       }
+      loading.close();
     })
     .catch(err => {
       message("导入失败", { type: "error" });
+      loading.close();
     });
 };
 
@@ -940,11 +1028,42 @@ const handleFlowDetail = (item: any) => {
 
 const queryViewDialogShow = ref(false);
 
+const dataSource = ref<any[]>([]);
+const treeRef = ref<any | HTMLElement>(null);
+const checkIds = ref([]);
+const allStaff = ref([]);
+const staffInputs = ref("");
+
+const treeChange = () => {
+  checkIds.value = treeRef.value.getCheckedKeys();
+  staffInputs.value = allStaff.value
+    .filter(item => checkIds.value.includes(item.id))
+    .map(i => i.name || i.account)
+    .join("、");
+};
+
+const getOrgStaffData = () => {
+  getAllOrg().then(res => {
+    if (res.data && res.data.length) {
+      dataSource.value = res.data.filter(
+        item => item.account_list && item.account_list.length
+      );
+      dataSource.value.forEach(item => {
+        if (item.account_list) {
+          item.children = item.account_list || [];
+          allStaff.value.push(...item.children);
+        }
+      });
+    }
+  });
+};
+
 onMounted(() => {
   // getData();
   // getTagOptions();
   getDataNew();
   getAllTagsData();
+  getOrgStaffData();
 });
 </script>
 
@@ -1054,6 +1173,42 @@ onMounted(() => {
               />
             </tagPop>
           </el-form-item>
+          <el-form-item label="跟进员工">
+            <el-popover
+              placement="bottom"
+              class="!rounded-lg"
+              :width="400"
+              trigger="click"
+            >
+              <template #reference>
+                <el-input v-model="staffInputs" placeholder="请选择" readonly />
+              </template>
+              <div class="overflow-auto max-h-80">
+                <el-tree
+                  ref="treeRef"
+                  style="max-width: 600px"
+                  :data="dataSource"
+                  show-checkbox
+                  node-key="id"
+                  expand-on-click-node
+                  @check="treeChange"
+                >
+                  <template #default="{ data }">
+                    <div class="flex items-center">
+                      <div class="flex items-center">
+                        <el-icon
+                          ><FolderOpened v-if="data.account_list" /><User
+                            v-else /></el-icon
+                        ><span class="ml-1">{{
+                          data.name || data.account
+                        }}</span>
+                      </div>
+                    </div>
+                  </template>
+                </el-tree>
+              </div>
+            </el-popover>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSubmit">查询</el-button>
             <el-button type="default" @click="onReset">重置</el-button>
@@ -1108,16 +1263,35 @@ onMounted(() => {
             </div>
           </template>
         </el-table-column>
+        <el-table-column label="跟进员工" width="160">
+          <template #default="props">
+            <template
+              v-if="
+                props.row.owner_pool_list && props.row.owner_pool_list.length
+              "
+            >
+              <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+                <div
+                  v-for="(item, idx) in props.row.owner_pool_list"
+                  :key="idx"
+                  class="p-1 px-2 text-xs rounded-md bg-[#f5f5f5] text-[#303841]"
+                >
+                  {{ item.staff_owner.name || item.staff_owner.account }}
+                </div>
+              </div>
+            </template>
+          </template>
+        </el-table-column>
         <el-table-column prop="phone" width="140" label="手机" />
         <el-table-column prop="company" width="180" label="公司" />
         <el-table-column prop="wechat" label="微信" />
         <el-table-column prop="wecom" label="企业微信" />
         <el-table-column prop="qq" label="QQ" />
-        <el-table-column label="添加时间" width="200" sortable>
+        <!-- <el-table-column label="添加时间" width="200" sortable>
           <template #default="props">
             {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
           </template>
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column #default="props" label="操作" fixed="right" width="80">
           <el-dropdown trigger="click">
             <el-icon :size="20"><More /></el-icon>

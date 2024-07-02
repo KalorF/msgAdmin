@@ -80,7 +80,9 @@ class PureHttp {
         return whiteList.find(url => url === config.url)
           ? config
           : new Promise(resolve => {
-            const data = {accessToken: window.localStorage.getItem('_token')};
+              const data = {
+                accessToken: window.localStorage.getItem("_token")
+              };
               if (data) {
                 const now = new Date().getTime();
                 const expired = parseInt(now + 1) - now <= 0;
@@ -171,11 +173,10 @@ class PureHttp {
           resolve(response);
         })
         .catch(error => {
-          
           if (error?.response?.data?.code === 401) {
-            message('账号过期, 请重新登陆', { type: "error" });
-            window.localStorage.removeItem('_token');
-            window.location.href = location.origin + '/#/login';
+            message("账号过期, 请重新登陆", { type: "error" });
+            window.localStorage.removeItem("_token");
+            window.location.href = location.origin + "/#/login";
             // router.replace('/login');
           }
           reject(error);

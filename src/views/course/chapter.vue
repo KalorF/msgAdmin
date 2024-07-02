@@ -68,6 +68,9 @@ const getList = () => {
 };
 
 const handleCloseUpload = () => {
+  if (uploading.value) {
+    return;
+  }
   uploadDialog.value = false;
   upload.value.name = "";
   upload.value.cover_url = "";
@@ -199,6 +202,7 @@ const handleUpload = async () => {
       if (res.code === 200) {
         ElMessage.success(uploadEdit.value ? "修改成功" : "上传成功");
         handleCloseUpload();
+        uploading.value = false;
         getList();
       }
     })
@@ -207,8 +211,6 @@ const handleUpload = async () => {
         err?.response?.data?.message ||
           (uploadEdit.value ? "修改失败" : "上传失败")
       );
-    })
-    .finally(() => {
       uploading.value = false;
     });
 };
@@ -262,20 +264,20 @@ onMounted(() => {
       <div
         v-for="item in list"
         :key="item.id"
-        @click="viewDetail(item)"
         class="rounded-lg border mb-4 mr-4 border-slate-100 w-[260px] h-[210px] shadow-sm flex flex-col relative overflow-hidden hover:border-slate-200 hover:shadow-md transition-all"
+        @click="viewDetail(item)"
       >
         <div
           v-if="actions.includes('UpdateCourse')"
-          @click.stop="handleEdit(item)"
           class="absolute top-2 left-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080] z-10"
+          @click.stop="handleEdit(item)"
         >
           <el-icon size="20"><Edit /></el-icon>
         </div>
         <div
           v-if="actions.includes('DeleteCourse')"
-          @click.stop="handleDel(item.id)"
           class="absolute top-2 right-2 text-[#ffffff] hover:text-neutral-300 rounded flex justify-center items-center w-7 h-7 bg-[#00000080] z-10"
+          @click.stop="handleDel(item.id)"
         >
           <el-icon size="18"><Delete /></el-icon>
         </div>
@@ -299,7 +301,7 @@ onMounted(() => {
             preload="true"
             class="object-content w-full h-full"
             :src="item.video_url"
-          ></video>
+          />
         </div>
         <div
           v-if="item.pdf_url"
@@ -346,8 +348,8 @@ onMounted(() => {
       v-model="uploadDialog"
       :title="uploadEdit ? '修改信息' : '上传章节'"
       width="400"
-      @closed="handleCloseUpload"
       align-center
+      @closed="handleCloseUpload"
     >
       <el-form class="demo-form-inline">
         <el-form-item label="章节名称">
@@ -368,8 +370,8 @@ onMounted(() => {
         <el-form-item label="上传文件">
           <el-upload
             v-if="uploadDialog"
-            v-model:file-list="fileList"
             ref="uploadRef"
+            v-model:file-list="fileList"
             class="upload-demo"
             action="#"
             :on-change="handleAvatarSuccess"
@@ -406,10 +408,10 @@ onMounted(() => {
       v-model="contentDialog"
       title="章节内容"
       fullscreen
-      @closed="handleContentClose"
       align-center
+      @closed="handleContentClose"
     >
-      <div class="flex w-full flex-col items-center" v-if="contentItem">
+      <div v-if="contentItem" class="flex w-full flex-col items-center">
         <p class="text-2xl font-semibold">{{ contentItem.title }}</p>
         <p class="mt-2">{{ contentItem.content }}</p>
         <div class="mt-5">
@@ -419,10 +421,10 @@ onMounted(() => {
             controls
             playinline
             :src="contentItem.video_url"
-          ></video>
+          />
           <div
-            class="w-full h-[550px] border border-slate-100 rounded-sm"
             v-if="contentItem.pdf_url"
+            class="w-full h-[550px] border border-slate-100 rounded-sm"
           >
             <PDF :src="contentItem.pdf_url" />
             <!-- <VuePdfApp class="w-full h-full" :pdf="contentItem.pdf_url" /> -->

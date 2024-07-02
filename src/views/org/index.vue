@@ -26,7 +26,7 @@ import { getUserChapterList } from "@/api/chapter";
 import examDialog from "@/components/examDialog/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
 import topCollapse from "@/layout/components/sidebar/topCollapse.vue";
-import { Plus } from "@element-plus/icons-vue";
+import { Plus, ArrowRight } from "@element-plus/icons-vue";
 
 const orgList = ref([]);
 const myorg = ref();
@@ -44,6 +44,7 @@ const allStaffList = ref([]);
 
 const permission = usePermissionActionStroe();
 const actions = computed(() => permission.value);
+const orgListMap = ref();
 
 const getpoolListPost = () => {
   getpoolList()
@@ -98,11 +99,16 @@ const getallOrgData = () => {
             return item;
           });
       };
-      const treeData = tree(orgdata, "0");
-      // 扁平化树并体现层级结构
+      const treeData = tree(orgdata, myorg.value.parent_id);
+
       const flat = (data: any, level = 0) => {
         return data.reduce((prev: any, item: any) => {
-          prev.push({ ...item, level });
+          let data = { ...item, level, visiable: true };
+          if (item.children) {
+            data.children = item.children.map((i: any) => i.id);
+            data.expand = true;
+          }
+          prev.push(data);
           if (item.children) {
             prev.push(...flat(item.children, level + 1));
           }
@@ -110,7 +116,32 @@ const getallOrgData = () => {
         }, []);
       };
       orgList.value = flat(treeData);
+      orgListMap.value = orgList.value.reduce((prev: any, item: any) => {
+        prev[item.id] = item;
+        return prev;
+      }, {});
     }
+  });
+};
+
+const handleToggle = (item: any) => {
+  item.expand = !item.expand;
+
+  const findChildren = (id: string, isshow: boolean) => {
+    const item = orgListMap.value[id];
+    if (item) {
+      item.visiable = isshow;
+      if (item.children) {
+        if (item.expand) {
+          item.children.forEach((i: any) => {
+            findChildren(i, isshow);
+          });
+        }
+      }
+    }
+  };
+  item.children.forEach((i: any) => {
+    findChildren(i, item.expand);
   });
 };
 
@@ -261,11 +292,6 @@ const policyShow = ref(false);
 const handleEditAuth = (item: any) => {
   currentInfo.value = item;
   policyShow.value = true;
-  // ElMessage({
-  //   message: "功能开发中",
-  //   type: "info",
-  //   customClass: "pure-message"
-  // });
 };
 
 const poolVisible = ref(false);
@@ -316,11 +342,11 @@ const handlePool = () => {
 };
 
 onMounted(async () => {
-  await getallOrgData();
   getpoolListPost();
-  orgGet().then(res => {
+  await orgGet().then(res => {
     myorg.value = res.data;
   });
+  await getallOrgData();
   activeOrg.value = orgList.value[0].id;
 });
 
@@ -419,13 +445,24 @@ const showBar = ref(false);
       >
       <div
         v-for="item in orgList"
+        v-show="item.visiable"
         :key="item.id"
         class="rounded-md hover:bg-[#f5f7fa] p-2 w-full text-sm flex items-center"
         :class="{ 'bg-[#f5f7fa]': item.id === activeOrg }"
-        :style="{ paddingLeft: `${(item.level + 1) * 8}px` }"
+        :style="{
+          paddingLeft: `${(item.level + 1) * 12 + (item.children ? 0 : 16)}px`
+        }"
         @click="selOrg(item.id)"
       >
-        {{ item.name }}
+        <el-icon
+          v-if="item.children"
+          :size="16"
+          :class="{ 'rotate-90': item.expand }"
+          class="transition-all"
+          @click.stop="handleToggle(item)"
+          ><ArrowRight
+        /></el-icon>
+        <span class="ml-2">{{ item.name }}</span>
         <div class="ml-auto flex">
           <el-icon
             :size="16"
@@ -483,13 +520,31 @@ const showBar = ref(false);
       >
       <div
         v-for="item in orgList"
+        v-show="item.visiable"
         :key="item.id"
-        class="rounded-md hover:bg-[#f5f7fa] p-2 w-full mt-2 text-sm flex items-center"
+        class="rounded-md hover:bg-[#f5f7fa] p-2 w-full text-sm flex items-center mt-2"
         :class="{ 'bg-[#f5f7fa]': item.id === activeOrg }"
+        :style="{
+          paddingLeft: `${(item.level + 1) * 12 + (item.children ? 0 : 16)}px`
+        }"
         @click="selOrg(item.id)"
       >
-        {{ item.name }}
+        <el-icon
+          v-if="item.children"
+          :size="16"
+          :class="{ 'rotate-90': item.expand }"
+          class="transition-all"
+          @click.stop="handleToggle(item)"
+          ><ArrowRight
+        /></el-icon>
+        <span class="ml-2">{{ item.name }}</span>
         <div class="ml-auto flex">
+          <el-icon
+            :size="16"
+            class="!text-gray-400 hover:!text-slate-500 mr-2"
+            @click.stop="handleSubAdd(item)"
+            ><Plus
+          /></el-icon>
           <svg
             v-if="actions.includes('UpdateOrganization')"
             class="w-4 h-4 mr-2 text-gray-400 hover:text-slate-500"

@@ -44,7 +44,8 @@ import {
   More,
   Edit,
   EditPen,
-  Delete
+  Delete,
+  ArrowDown
 } from "@element-plus/icons-vue";
 import { onMounted, nextTick, onUnmounted, computed } from "vue";
 import { ElMessageBox } from "element-plus";
@@ -74,7 +75,8 @@ const formInline = reactive({
   user: "",
   company: "",
   phone: "",
-  date: ""
+  date: "",
+  call_state: ""
 });
 
 let recorderContext: any = null;
@@ -200,7 +202,7 @@ const getVisit = () => {
 };
 
 const getData = () => {
-  let searchInfo = {
+  let searchInfo: any = {
     allocation: {
       staff_id: userStore.userInfo.id
     },
@@ -213,6 +215,9 @@ const getData = () => {
       customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id }))
     }
   };
+  if (formInline.call_state) {
+    searchInfo.allocation.call_state = { call_state: +formInline.call_state };
+  }
   if (currentViewData.value) {
     searchInfo = {
       ...JSON.parse(currentViewData.value.condition_json),
@@ -685,16 +690,16 @@ const handleCurrentChange3 = (value: number) => {
 
 const handleGetCustomer = async () => {
   const staff_id = userStore.userInfo.id;
-  const check = await allocConfigCheck({ staff_id });
-  if (check.data.can_alloc) {
-    try {
+  try {
+    const check = await allocConfigCheck({ staff_id });
+    if (check.data.can_alloc) {
       const res = await allocConfigAlloc({ staff_id });
       if (res.code === 200) {
         getData();
       }
-    } catch (e) {
-      message(e?.response?.data?.msg || "领取失败", { type: "error" });
     }
+  } catch (e) {
+    message(e?.response?.data?.msg || "领取失败", { type: "error" });
   }
 };
 
@@ -820,8 +825,7 @@ const customerMsgData = ref({
   name: {
     label: "客户名称",
     value: "",
-    type: "text",
-    is_require: true
+    type: "text"
   },
   phone: {
     label: "手机",
@@ -975,6 +979,48 @@ onUnmounted(() => {
   document.removeEventListener("visibilitychange", visiableChange);
 });
 
+const showMenu = ref(false);
+
+const followVisibale = ref(false);
+const followContent = ref("");
+
+const followCancel = () => {
+  followContent.value = "";
+  followVisibale.value = false;
+};
+
+const handleFollow = (item: any) => {
+  currentCustomerInfo.value = item;
+  followVisibale.value = true;
+};
+
+const handleConfrimFollow = () => {
+  if (!followContent.value) {
+    message("请输入跟进内容", { type: "info" });
+    return;
+  }
+  operateCreate({
+    staff_id: userStore.userInfo.id,
+    customer_id: currentCustomerInfo.value.id,
+    record_tyoe: RECORD_TYPE.GENJIN,
+    flow_type: FLOW_TYPE.RUKU,
+    content: followContent.value,
+    progress_id: currentCustomerInfo.value.progress_id
+  })
+    .then(res => {
+      if (res.code === 200) {
+        message("填写成功", { type: "success" });
+        getData();
+        followCancel();
+      } else {
+        message("填写失败", { type: "error" });
+      }
+    })
+    .catch(err => {
+      message(err?.response?.data?.msg || "操作失败", { type: "error" });
+    });
+};
+
 onMounted(async () => {
   initCorder();
   getData();
@@ -985,6 +1031,10 @@ onMounted(async () => {
     audioSrc.value = (window.URL || webkitURL).createObjectURL(url);
   }
   document.addEventListener("visibilitychange", visiableChange);
+  const width = window.innerWidth;
+  if (width > 640) {
+    showMenu.value = true;
+  }
 });
 </script>
 
@@ -992,10 +1042,26 @@ onMounted(async () => {
   <div class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)]">
     <!-- <audio controls :src="audioSrc"></audio> -->
     <!-- <input type="file" accept="audio/mp3" /> -->
-    <el-button type="primary" round class="w-40 mb-4" @click="handleGetCustomer"
-      >领取客户</el-button
+    <div class="flex items-center justify-between mb-4">
+      <el-button type="primary" round class="w-40" @click="handleGetCustomer"
+        >领取客户</el-button
+      >
+      <div
+        class="phone:hidden max-phone:flex items-center"
+        @click="showMenu = !showMenu"
+      >
+        <span class="mr-2">查询</span>
+        <el-icon class="transition-all" :class="{ 'rotate-180': showMenu }"
+          ><ArrowDown
+        /></el-icon>
+      </div>
+    </div>
+    <el-form
+      v-show="showMenu"
+      :inline="true"
+      :model="formInline"
+      class="demo-form-inline"
     >
-    <el-form :inline="true" :model="formInline" class="demo-form-inline">
       <el-form-item label="客户名称">
         <el-input
           v-model="formInline.user"
@@ -1038,6 +1104,17 @@ onMounted(async () => {
             readonly
           />
         </tagPop>
+      </el-form-item>
+      <el-form-item label="是否联系过">
+        <el-select
+          v-model="formInline.call_state"
+          clearable
+          placeholder="请选择"
+          style="width: 240px"
+        >
+          <el-option label="是" value="1" />
+          <el-option label="否" value="0" />
+        </el-select>
       </el-form-item>
       <el-form-item label="客户视图">
         <el-select
@@ -1093,9 +1170,15 @@ onMounted(async () => {
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="客户名称" width="150">
+      <el-table-column label="客户名称" width="240">
         <template #default="props">
           <div class="flex items-center">
+            <div
+              class="cursor-default text-sky-500 hover:text-sky-600 text-sm border-r border-neutral-300 pr-2 mr-2"
+              @click="handleCall(props.row)"
+            >
+              拨打电话
+            </div>
             <el-icon class="mr-1" :size="24" color="#393e46"
               ><UserFilled
             /></el-icon>
@@ -1137,7 +1220,7 @@ onMounted(async () => {
       </el-table-column>
       <el-table-column prop="company" label="公司" />
       <el-table-column prop="wechat" label="微信" />
-      <el-table-column prop="企业微信" label="wecom" />
+      <el-table-column prop="wecom" label="企业微信" />
       <el-table-column prop="qq" label="QQ" />
 
       <!-- <el-table-column label="通话记录">
@@ -1150,11 +1233,11 @@ onMounted(async () => {
           </div>
         </template>
       </el-table-column> -->
-      <el-table-column label="添加时间" width="200" sortable>
+      <!-- <el-table-column label="添加时间" width="200" sortable>
         <template #default="props">
           {{ dayjs(props.row.updated_at * 1000).format("YYYY-MM-DD HH:mm") }}
         </template>
-      </el-table-column>
+      </el-table-column> -->
       <el-table-column #default="props" label="操作" fixed="right" width="80">
         <el-dropdown trigger="click">
           <el-icon :size="20"><More /></el-icon>
@@ -1174,6 +1257,12 @@ onMounted(async () => {
                 :icon="EditPen"
                 @click="handleProgress(props.row)"
                 >修改进度</el-dropdown-item
+              >
+              <el-dropdown-item
+                v-if="actions.includes('UpdateCustomerAction')"
+                :icon="Edit"
+                @click="handleFollow(props.row)"
+                >填写记录</el-dropdown-item
               >
               <el-dropdown-item
                 :icon="Memo"
@@ -1231,6 +1320,29 @@ onMounted(async () => {
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <el-dialog
+      v-model="followVisibale"
+      title="填写回访记录"
+      width="400"
+      @close="followCancel"
+    >
+      <el-input
+        v-model="followContent"
+        :rows="5"
+        :maxlength="1000"
+        placeholder="请填写回访记录（1000字以内）"
+        type="textarea"
+      />
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="followCancel">取消</el-button>
+          <el-button type="primary" @click="handleConfrimFollow">
+            确认填写
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <el-dialog
       v-model="dialogVisible"

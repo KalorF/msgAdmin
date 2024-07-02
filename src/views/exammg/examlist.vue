@@ -78,7 +78,7 @@ onMounted(async () => {
       class="p-4 bg-white rounded-lg flex flex-col h-[calc(100%-30px)]"
     >
       <div class="flex items-center">
-        <div class="w-1 h-4 bg-orange-400 rounded-sm mr-2"></div>
+        <div class="w-1 h-4 bg-orange-400 rounded-sm mr-2" />
         我的考试
       </div>
       <div class="flex flex-wrap overflow-auto gap-3 flex-1 mt-3 content-start">
@@ -148,8 +148,8 @@ onMounted(async () => {
             <el-icon :size="40"><Tickets /></el-icon>
           </div>
           <div
-            @click.stop="viewDetail(item)"
             class="flex items-center w-full h-[60px] px-3"
+            @click.stop="viewDetail(item)"
           >
             <div class="mr-2 text-sm">{{ item.title }}</div>
             <div class="flex flex-col ml-auto items-end">
@@ -166,9 +166,9 @@ onMounted(async () => {
     </div>
     <ExamDetail
       v-if="!showList"
-      @back="handleBack"
-      :exam="answerExam"
       :id="currentId"
+      :exam="answerExam"
+      @back="handleBack"
     />
   </div>
 </template>

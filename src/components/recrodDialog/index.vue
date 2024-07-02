@@ -134,13 +134,34 @@ watch(
             placement="top"
           >
             <div
-              v-if="item.record_type === 0"
+              v-if="item.content"
+              class="bg-[#f6f6f6] rounded-md px-4 py-2 text-sm"
+            >
+              跟进记录：{{ item.content }}
+            </div>
+            <div
+              v-else-if="item.record_type === 0"
               class="bg-[#f6f6f6] rounded-md px-4 py-2 text-sm"
             >
               {{ LIUZHUAN[item.flow_type] }}
             </div>
             <div v-else class="bg-[#f6f6f6] rounded-md px-4 py-2 text-sm">
               {{ OTHERS[item.record_type] }}
+              <div
+                v-if="item.record_type === 2"
+                class="mt-2 text-zinc-500 text-sm flex flex-col gap-2"
+              >
+                <p>修改信息：{{ item.modified_field_name }}</p>
+                <p>修改前：{{ item.modified_before }}</p>
+                <p>修改后：{{ item.modified_after }}</p>
+              </div>
+              <div
+                v-if="item.record_type === 4"
+                class="mt-2 text-zinc-500 text-sm flex flex-col gap-2"
+              >
+                <p>修改前：{{ item.progress_before }}</p>
+                <p>修改后：{{ item.progress_after }}</p>
+              </div>
               <div v-if="item.record_type === 3" class="mt-2 text-gray-600">
                 <div class="flex gap-1 flex-wrap text-sm">
                   修改前:
