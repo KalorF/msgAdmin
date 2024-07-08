@@ -60,14 +60,19 @@ import tagPop from "@/components/tagPop/index.vue";
 import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
 import progressDialog from "@/components/progress/index.vue";
-import { usePermissionActionStroe } from "@/store/modules/permission";
+import {
+  usePermissionActionStroe,
+  usePermissionStoreHook
+} from "@/store/modules/permission";
 
 defineOptions({
   name: "customerlist2"
 });
 
 const permission = usePermissionActionStroe();
+const perm = usePermissionStoreHook();
 const actions = computed(() => permission.value);
+const isAdmin = computed(() => perm.policies.role.RoleType === "admin");
 
 const userStore = useUserStoreHook();
 
@@ -110,6 +115,8 @@ const onSubmit = async () => {
   cutomerType.value = "";
   currentViewData.value = null;
   getData();
+  mutilTable.value.clearSelection();
+
   // }
   // getData();
   // if (valueGroup.value.length) {
@@ -149,6 +156,7 @@ const onReset = () => {
   pageSize.value = 10;
   cutomerType.value = "";
   getData();
+  mutilTable.value.clearSelection();
 };
 
 const currentPage = ref(1);
@@ -248,7 +256,8 @@ const getData = () => {
     .catch(() => {
       total.value = 0;
       tableData.value = [];
-    });
+    })
+    .finally(() => {});
 };
 
 const valueGroup = ref([]);
@@ -614,11 +623,12 @@ const handleCall = (item: any) => {
   startCall.value = true;
   // if (isOpen) {
   // startCall.value = true;
-  currentCustomerInfo.value = item;
-  const a = document.createElement("a");
-  a.href = `tel:${item.phone}`;
-  a.click();
+  // currentCustomerInfo.value = item;
+  // const a = document.createElement("a");
+  // a.href = `tel:${item.phone}`;
+  // a.click();
   // }
+  window.location.href = `tel://${item.phone}`;
 };
 
 const callialogVisiable = ref(false);
@@ -731,6 +741,7 @@ const handleShare = (item: any) => {
 const handleCloseOrg = () => {
   if (orgTitle.value === "转让客户") {
     getData();
+    mutilTable.value.clearSelection();
   }
   orgTitle.value = "";
   orgDialogShow.value = false;
@@ -758,12 +769,14 @@ const getViewData = () => {
   );
   currentPage.value = 1;
   getData();
+  mutilTable.value.clearSelection();
 };
 
 const handleClear = () => {
   currentPage.value = 1;
   currentViewData.value = null;
   getData();
+  mutilTable.value.clearSelection();
 };
 
 const tagDialogVisiable = ref(false);
@@ -821,7 +834,7 @@ const handleConfirmTag = () => {
 };
 
 const customerMsgDialog = ref(false);
-const customerMsgData = ref({
+const customerMsgData = ref<any>({
   name: {
     label: "客户名称",
     value: "",
@@ -831,6 +844,7 @@ const customerMsgData = ref({
     label: "手机",
     value: "",
     type: "tel",
+    disabled: true,
     is_require: true
   },
   company: {
@@ -871,7 +885,7 @@ const customerMsgData = ref({
 });
 
 const customerMsgCancel = () => {
-  Object.values(customerMsgData.value).forEach(item => {
+  Object.values(customerMsgData.value).forEach((item: any) => {
     item.value = "";
   });
   isEdit.value = false;
@@ -890,7 +904,7 @@ const handleEditCustomerMsg = (item: any) => {
 
 const handleConfirmMsg = () => {
   let flag = false;
-  Object.values(customerMsgData.value).some(item => {
+  Object.values(customerMsgData.value).some((item: any) => {
     if ((item as any).is_require && !item.value) {
       message(`请输入${item.label}`, { type: "info" });
       flag = true;
@@ -1021,6 +1035,88 @@ const handleConfrimFollow = () => {
     });
 };
 
+// 并发请求函数
+const concurrencyRequest = (fn: any, urls: any, maxNum: number) => {
+  return new Promise(resolve => {
+    if (urls.length === 0) {
+      resolve([]);
+      return;
+    }
+    const results = [];
+    let index = 0; // 下一个请求的下标
+    let count = 0; // 当前请求完成的数量
+
+    // 发送请求
+    async function request() {
+      if (index === urls.length) return;
+      const i = index; // 保存序号，使result和urls相对应
+      const url = urls[index];
+      index++;
+      try {
+        const resp = await fn(url);
+        // resp 加入到results
+        results[i] = resp;
+      } catch (err) {
+        // err 加入到results
+        results[i] = err;
+      } finally {
+        count++;
+        // 判断是否所有的请求都已完成
+        if (count === urls.length) {
+          resolve(results);
+        }
+        request();
+      }
+    }
+
+    // maxNum和urls.length取最小进行调用
+    const times = Math.min(maxNum, urls.length);
+    for (let i = 0; i < times; i++) {
+      request();
+    }
+  });
+};
+
+const selectList = ref([]);
+const mutilTable = ref<any>(null);
+
+const handleSelectionChange = (val: any) => {
+  if (val.length) {
+    selectList.value = val;
+  } else {
+    selectList.value = [];
+  }
+};
+
+const handleMulDel = async () => {
+  if (!selectList.value.length) {
+    message("请选择要删除的客户", { type: "info" });
+    return;
+  }
+  const urls = selectList.value.map(item => {
+    return {
+      staff_id: userStore.userInfo.id,
+      customer_id: item.id,
+      record_tyoe: RECORD_TYPE.LIUZHUAN,
+      flow_type: FLOW_TYPE.FANGQI,
+      progress_id: item.progress_id
+    };
+  });
+
+  ElMessageBox.confirm("确认放弃选择的客户?", "提示", {
+    confirmButtonText: "确认放弃",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      concurrencyRequest(operateCreate, urls, 5).then(res => {
+        message("删除成功", { type: "success" });
+        getData();
+      });
+    })
+    .catch(() => {});
+};
+
 onMounted(async () => {
   initCorder();
   getData();
@@ -1139,11 +1235,19 @@ onMounted(async () => {
       </el-form-item>
     </el-form>
     <el-table
+      ref="mutilTable"
       :data="tableData"
       header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
       style="width: 100%"
       class="flex-1"
+      :row-key="
+        row => {
+          return row.id;
+        }
+      "
+      @selection-change="handleSelectionChange"
     >
+      <el-table-column type="selection" reserve-selection width="30" />
       <el-table-column type="expand">
         <template #default="props">
           <div
@@ -1170,6 +1274,13 @@ onMounted(async () => {
           </div>
         </template>
       </el-table-column>
+      <el-table-column
+        type="index"
+        width="70"
+        align="center"
+        :index="idx => (currentPage - 1) * pageSize + idx + 1"
+        label="序号"
+      />
       <el-table-column label="客户名称" width="240">
         <template #default="props">
           <div class="flex items-center">
@@ -1211,6 +1322,7 @@ onMounted(async () => {
                 v-for="item in props.row.customer_tag_list"
                 :key="item.id"
                 class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                :class="{ hidden: item.tag.just_show_for_admin && !isAdmin }"
               >
                 {{ item.tag.name }}
               </div>
@@ -1307,7 +1419,14 @@ onMounted(async () => {
           </div> -->
       </el-table-column>
     </el-table>
-    <div class="mt-4 flex justify-end">
+    <div class="mt-4 flex justify-between">
+      <el-button
+        v-if="actions.includes('UpdateCustomerAction')"
+        type="primary"
+        :disabled="!selectList.length"
+        @click="handleMulDel"
+        >批量放弃</el-button
+      >
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
@@ -1323,7 +1442,7 @@ onMounted(async () => {
 
     <el-dialog
       v-model="followVisibale"
-      title="填写回访记录"
+      title="填写跟进记录"
       width="400"
       @close="followCancel"
     >
@@ -1331,7 +1450,7 @@ onMounted(async () => {
         v-model="followContent"
         :rows="5"
         :maxlength="1000"
-        placeholder="请填写回访记录（1000字以内）"
+        placeholder="请填写跟进记录（1000字以内）"
         type="textarea"
       />
       <template #footer>
@@ -1582,6 +1701,7 @@ onMounted(async () => {
             <el-input
               v-model="item.value"
               :type="item.type"
+              :disabled="item.disabled"
               :placeholder="'请输入' + item.label"
               clearable
             />

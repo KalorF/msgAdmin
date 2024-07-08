@@ -78,10 +78,15 @@ onMounted(() => {
     trigger="click"
   >
     <template #reference>
-      <slot></slot>
+      <slot />
     </template>
     <div class="p-2 overflow-auto max-h-60">
-      <div class="mb-4" v-for="item in tagList" :key="item.id">
+      <div
+        v-for="item in tagList"
+        :key="item.id"
+        class="mb-4"
+        :class="{ hidden: item.just_show_for_admin && !isAdmin }"
+      >
         <p
           class="mb-2 text-sm text-zinc-800 border-l-4 border-amber-500 pl-2"
           :class="{ hidden: item.just_show_for_admin && !isAdmin }"
@@ -94,8 +99,8 @@ onMounted(() => {
             :key="tag.id"
             type="success"
             :checked="checkIds.includes(tag.id)"
-            @change="handleChange(item.tag_group_type, tag, item.tag_list)"
             :class="{ hidden: tag.just_show_for_admin && !isAdmin }"
+            @change="handleChange(item.tag_group_type, tag, item.tag_list)"
           >
             {{ tag.name }}
           </el-check-tag>

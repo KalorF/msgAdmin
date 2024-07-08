@@ -82,6 +82,30 @@ const genDefaultData = () => {
   ];
 };
 
+const msToTime = duration => {
+  // const milliseconds = parseInt((duration % 1000) / 100);
+  const seconds = Math.floor((duration / 1000) % 60);
+  const minutes = Math.floor((duration / (1000 * 60)) % 60);
+  const hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+  let text = "";
+  if (hours) {
+    text += hours + " 小时";
+  }
+  if (minutes) {
+    text += minutes + " 分";
+  }
+  if (seconds) {
+    text += seconds + " 秒";
+  }
+
+  if (!text) {
+    text = "0 秒";
+  }
+
+  return text;
+};
+
 onMounted(() => {
   genDefaultData();
   getData();
@@ -192,11 +216,23 @@ onMounted(() => {
               {{ props.row.staff.name }}
             </template>
           </el-table-column>
-          <el-table-column prop="call_duration" label="通话时长" />
+          <el-table-column label="通话时长">
+            <template #default="props">
+              {{ msToTime(props.row.call_duration) }}
+            </template>
+          </el-table-column>
           <el-table-column prop="call_count" label="通话次数" />
-          <el-table-column prop="avg_call_duration" label="平均通话时长" />
+          <el-table-column label="平均通话时长">
+            <template #default="props">
+              {{ msToTime(props.row.avg_call_duration) }}
+            </template>
+          </el-table-column>
           <el-table-column prop="connect_count" label="联系客户数" />
-          <el-table-column prop="connect_rate" label="接通率" />
+          <el-table-column label="接通率">
+            <template #default="props">
+              {{ (props.row.connect_rate * 100).toFixed(2) }}%
+            </template>
+          </el-table-column>
         </el-table>
       </div>
     </template>

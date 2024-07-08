@@ -1,6 +1,11 @@
 <script lang="ts" setup>
 import { ref, watch, computed } from "vue";
-import { getpolicy, getPolicyByUserId, policyUpsert } from "@/api/user";
+import {
+  getpolicy,
+  getPolicyByUserId,
+  policyUpsert,
+  roleUpsert
+} from "@/api/user";
 import { useUserStore } from "@/store/modules/user";
 import { message } from "@/utils/message";
 import { useNav } from "@/layout/hooks/useNav";
@@ -14,11 +19,13 @@ const roleMap: any = {
   organization_manager: "组织管理员"
 };
 
+const customerRole = ref([]);
+
 const resourceMap = {
   SimpleBI: "数据概览",
   AccountManager: "账号管理",
   CustomerTagManager: "客户标签管理",
-  CustomerActionManager: "客户管理",
+  CustomerActionManager: "公海库",
   SimpleCustomer: "我的客户",
   OrganizationManager: "组织管理",
   BankManager: "银行卡白名单",
@@ -133,7 +140,56 @@ const handleConfirm = () => {
     });
 };
 
+const handleUpserPolicy = () => {
+  if (resourceCheckList.value.length === 0) {
+    message("请选择菜单", { type: "error" });
+    return;
+  }
+  let curRole: any = {};
+  if (!isAdd.value) {
+    curRole = customerRole.value.find(item => item.name === role.value);
+    curRole.role_resource_list = resourceCheckList.value.map(item => ({
+      resource_name: item,
+      role_id: curRole.id
+    }));
+    curRole.role_action_list = actionCheckList.value.map(item => ({
+      action_name: item,
+      role_id: curRole.id
+    }));
+  } else {
+    curRole.description = addRoleName.value;
+    curRole.name = addRoleName.value;
+    curRole.role_resource_list = resourceCheckList.value.map(item => ({
+      resource_name: item
+    }));
+    curRole.role_action_list = actionCheckList.value.map(item => ({
+      action_name: item
+    }));
+  }
+
+  roleUpsert({
+    role: curRole
+  })
+    .then(async res => {
+      if (res.code === 200) {
+        message("设置成功", { type: "success" });
+        await getPolicyList();
+        if (isAdd.value) {
+          role.value = addRoleName.value;
+          isAdd.value = false;
+        }
+        genCheckList();
+        // emits("close");
+        // emits("confirm");
+      }
+    })
+    .catch(err => {
+      message(err?.response?.data?.msg || "设置失败", { type: "error" });
+    });
+};
+
 const handleCancel = () => {
+  isAdd.value = false;
   emits("close");
 };
 
@@ -156,22 +212,53 @@ const getCurrentPolicy = () => {
   });
 };
 
+const genCheckList = () => {
+  const curRole = customerRole.value.find(item => item.name === role.value);
+  if (curRole) {
+    resourceCheckList.value = curRole.role_resource_list.map(
+      item => item.resource_name
+    );
+    actionCheckList.value = curRole.role_action_list.map(
+      item => item.action_name
+    );
+  }
+};
+
+const handleRoleChange = (val: string) => {
+  role.value = val;
+  genCheckList();
+};
+
 const getPolicyList = () => {
   return getpolicy().then(res => {
     if (res.code === 200) {
       actions.value = genAction(res.data.actions);
       rolesList.value = genRoleListData(res.data.custom_roles);
       resources.value = genResource(res.data.resources);
+      customerRole.value = res.data.custom_roles;
     }
   });
+};
+
+const isAdd = ref(false);
+const addRoleName = ref("");
+
+const handleAddRole = () => {
+  isAdd.value = true;
+  addRoleName.value = "";
+  resourceCheckList.value = [];
+  actionCheckList.value = [];
 };
 
 watch(
   () => props.show,
   async val => {
     if (val) {
+      isAdd.value = false;
       await getPolicyList();
-      getCurrentPolicy();
+      role.value = rolesList.value[0].value;
+      // getCurrentPolicy();
+      genCheckList();
     }
   },
   { immediate: true }
@@ -183,14 +270,17 @@ watch(
     v-model="props.show"
     width="700"
     title="权限设置"
-    @close="emits('close')"
+    @close="handleCancel"
   >
     <div class="mb-4">
+      <el-button size="small" class="mb-2" @click="handleAddRole"
+        >新增角色</el-button
+      >
       <div class="font-semibold text-base flex items-center">
         <p class="w-1 h-4 rounded-sm bg-amber-400 mr-2" />
         账号角色
       </div>
-      <el-radio-group v-model="role">
+      <el-radio-group v-if="!isAdd" v-model="role" @change="handleRoleChange">
         <el-radio
           v-for="item in rolesList"
           :key="item.value"
@@ -198,6 +288,12 @@ watch(
           >{{ item.label }}</el-radio
         >
       </el-radio-group>
+      <el-input
+        v-else
+        v-model="addRoleName"
+        class="mt-2"
+        placeholder="请填写角色名称"
+      />
     </div>
     <div class="mb-4">
       <div class="font-semibold text-base flex items-center">
@@ -229,8 +325,10 @@ watch(
     </div>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleCancel">取消</el-button>
-        <el-button type="primary" @click="handleConfirm"> 确认 </el-button>
+        <el-button @click="handleCancel">关闭</el-button>
+        <el-button type="primary" @click="handleUpserPolicy">
+          {{ isAdd ? "确认添加" : "确认设置" }}
+        </el-button>
       </div>
     </template>
   </el-dialog>

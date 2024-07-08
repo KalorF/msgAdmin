@@ -577,7 +577,7 @@ const showBar = ref(false);
     <!-- 创建客户池子 -->
     <el-dialog
       v-model="dialogVisiable"
-      :title="isEdit ? '编辑客户池' : '创建客户池子'"
+      :title="isEdit ? '编辑客户池' : '创建客户池'"
       width="400"
       align-center
       @closed="handleCancelCreate"
@@ -717,20 +717,21 @@ const showBar = ref(false);
           </template>
         </el-table-column>
         <el-table-column prop="phone" width="140" label="手机" />
-        <el-table-column prop="company" width="180" label="公司" />
-        <el-table-column prop="wechat" label="微信" />
-        <el-table-column prop="wecom" label="企业微信" />
-        <el-table-column prop="qq" label="QQ" />
         <el-table-column label="添加时间" width="200">
           <template #default="props">
             {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
           </template>
         </el-table-column>
+        <el-table-column prop="company" width="180" label="公司" />
+        <el-table-column prop="wechat" label="微信" />
+        <el-table-column prop="wecom" label="企业微信" />
+        <el-table-column prop="qq" label="QQ" />
       </el-table>
       <el-pagination
         v-if="customerTotal"
         v-model:current-page="customerCurrentPage"
         class="flex-wrap gap-y-2 mt-4"
+        :default-page-size="5"
         background
         layout="total, prev, pager, next, jumper"
         :total="customerTotal"

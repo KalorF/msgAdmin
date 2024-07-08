@@ -27,6 +27,7 @@ import examDialog from "@/components/examDialog/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
 import topCollapse from "@/layout/components/sidebar/topCollapse.vue";
 import { Plus, ArrowRight } from "@element-plus/icons-vue";
+import roleDailog from "@/components/roleDailog/index.vue";
 
 const orgList = ref([]);
 const myorg = ref();
@@ -632,7 +633,7 @@ const showBar = ref(false);
               type="primary"
               @click="handleEditAuth(scope.row)"
             >
-              编辑权限</el-button
+              设置角色</el-button
             >
             <el-button
               v-if="actions.includes('CreateCustomerAction')"
@@ -825,7 +826,7 @@ const showBar = ref(false);
         </div>
       </div>
     </el-dialog>
-    <policyDialog
+    <roleDailog
       :show="policyShow"
       :info="currentInfo"
       @close="policyShow = false"

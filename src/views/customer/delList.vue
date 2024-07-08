@@ -8,7 +8,8 @@ import {
   getCustomerByTagId,
   customerSelect,
   customerQuery,
-  customerUpte
+  customerUpte,
+  batchDelCustomer
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag } from "@/api/tag";
 import { message } from "@/utils/message";
@@ -247,17 +248,24 @@ const handleCurrentChange = (val: number) => {
 };
 
 const handleDel = (item: any) => {
-  ElMessageBox.confirm("确认删除该客户吗?", "提示", {
+  ElMessageBox.confirm("确认删彻底除该客户吗?", "提示", {
     confirmButtonText: "确认删除",
     cancelButtonText: "取消",
     type: "warning"
   })
     .then(() => {
-      deleteCustomer(item.id)
+      batchDelCustomer({
+        customer_id_str_list: [item.id],
+        state: 2
+      })
         .then(res => {
           if (res.code === 200) {
-            message("删除成功", { type: "success" });
-            getData();
+            if (!res.data.reason) {
+              message("删除成功", { type: "success" });
+              getData();
+            } else {
+              message(res.data.reason, { type: "error" });
+            }
           } else {
             message("删除失败", { type: "error" });
           }
@@ -282,6 +290,54 @@ const handlecover = (item: any) => {
     .catch(err => {
       message(err?.response?.data?.msg || "恢复失败", { type: "error" });
     });
+};
+
+const selectList = ref([]);
+const mutilTable = ref<any>(null);
+
+const handleSelectionChange = (val: any) => {
+  if (val.length) {
+    selectList.value = val;
+  } else {
+    selectList.value = [];
+  }
+};
+
+const handleMulDel = async (flag = false) => {
+  if (!selectList.value.length) {
+    message(`请选择要${flag ? "恢复" : "删除"}的客户`, { type: "info" });
+    return;
+  }
+  const urls = selectList.value.map(item =>
+    Object.assign(item, { is_deleted: true })
+  );
+
+  ElMessageBox.confirm(`确认${flag ? "恢复" : "彻底删除"}选择的客户?`, "提示", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      batchDelCustomer({
+        customer_id_str_list: urls.map(item => item.id),
+        state: flag ? 0 : 2
+      })
+        .then(res => {
+          if (res.code === 200) {
+            if (!res.data.reason) {
+              message("操作成功", { type: "success" });
+              getData();
+              mutilTable.value.clearSelection();
+            } else {
+              message(res.data.reason, { type: "error" });
+            }
+          }
+        })
+        .catch(err => {
+          message(err?.response?.data?.msg || "操作失败", { type: "error" });
+        });
+    })
+    .catch(() => {});
 };
 
 onMounted(() => {
@@ -349,11 +405,19 @@ onMounted(() => {
     </el-form-item>
   </el-form> -->
   <el-table
+    ref="mutilTable"
     header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
     :data="tableData"
     style="width: 100%"
     class="flex-1"
+    :row-key="
+      row => {
+        return row.id;
+      }
+    "
+    @selection-change="handleSelectionChange"
   >
+    <el-table-column type="selection" reserve-selection width="30" />
     <el-table-column type="expand">
       <template #default="props">
         <div
@@ -367,9 +431,9 @@ onMounted(() => {
           >
             标签：
             <div
-              class="p-1 px-4 rounded-md bg-[#eeeeee] text-[#303841]"
               v-for="item in props.row.tags"
               :key="item.id"
+              class="p-1 px-4 rounded-md bg-[#eeeeee] text-[#303841]"
             >
               {{ item.name }}
             </div>
@@ -394,7 +458,7 @@ onMounted(() => {
         {{ dayjs(props.row.updated_at * 1000).format("YYYY-MM-DD HH:mm") }}
       </template>
     </el-table-column>
-    <el-table-column label="操作" #default="props">
+    <el-table-column #default="props" label="操作">
       <el-button
         v-if="actions.includes('CreateCustomerAction')"
         link
@@ -402,16 +466,32 @@ onMounted(() => {
         @click="handlecover(props.row)"
         >恢复</el-button
       >
-      <!-- <el-button link type="danger" @click="handleDel(props.row)"
+      <el-button link type="danger" @click="handleDel(props.row)"
         >删除</el-button
-      > -->
+      >
     </el-table-column>
   </el-table>
-  <div class="mt-4 flex justify-end">
+  <div class="mt-4 flex justify-between">
+    <div class="flex items-center gap-2">
+      <el-button
+        v-if="actions.includes('CreateCustomerAction')"
+        type="primary"
+        :disabled="!selectList.length"
+        @click="handleMulDel(false)"
+        >批量删除</el-button
+      >
+      <el-button
+        v-if="actions.includes('CreateCustomerAction')"
+        type="primary"
+        :disabled="!selectList.length"
+        @click="handleMulDel(true)"
+        >批量恢复</el-button
+      >
+    </div>
     <el-pagination
-      class="flex-wrap gap-y-2"
       v-model:current-page="currentPage"
       v-model:page-size="pageSize"
+      class="flex-wrap gap-y-2"
       :page-sizes="[10, 20, 30, 40]"
       background
       layout="total, sizes, prev, pager, next, jumper"
@@ -425,14 +505,14 @@ onMounted(() => {
     v-model="dialogVisible"
     :title="isEdit ? '客户信息' : '添加客户'"
     width="400"
-    @closed="handleCancelCrete"
     align-center
+    @closed="handleCancelCrete"
   >
     <el-form label-position="right" class="demo-form-inline">
       <el-form-item
-        :label="item.label"
         v-for="(item, key) in dialogData"
         :key="key"
+        :label="item.label"
       >
         <el-input
           v-model="item.value"

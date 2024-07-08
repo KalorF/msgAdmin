@@ -17,7 +17,8 @@ import {
   recordDel,
   customerQuery,
   customerUpte,
-  customerBatchCreate
+  customerBatchCreate,
+  batchDelCustomer
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag, customerTagUpsert } from "@/api/tag";
 import { getCallListByCustomer } from "@/api/call";
@@ -46,7 +47,10 @@ import tagPop from "@/components/tagPop/index.vue";
 import recrodDialog from "@/components/recrodDialog/index.vue";
 import orgDialog from "@/components/orgDialog/index.vue";
 import queryViewDialog from "@/components/queryViewDialog/index.vue";
-import { usePermissionActionStroe } from "@/store/modules/permission";
+import {
+  usePermissionActionStroe,
+  usePermissionStoreHook
+} from "@/store/modules/permission";
 import { getAllOrg } from "@/api/organization";
 
 defineOptions({
@@ -54,7 +58,9 @@ defineOptions({
 });
 
 const permission = usePermissionActionStroe();
+const perm = usePermissionStoreHook();
 const actions = computed(() => permission.value);
+const isAdmin = computed(() => perm.policies.role.RoleType === "admin");
 
 const userStore = useUserStoreHook();
 
@@ -62,13 +68,16 @@ const formInline = reactive({
   user: "",
   company: "",
   phone: "",
-  date: ""
+  date: "",
+  create_at: "",
+  range: []
 });
 
 const onSubmit = async () => {
   currentPage.value = 1;
   pageSize.value = 10;
   getDataNew();
+  mutilTable.value.clearSelection();
   // if (valueGroup.value.length) {
   //   const res = await getCustomerByTagId({ tag_id_list: valueGroup.value });
   //   tableData.value = res.data || [];
@@ -105,6 +114,7 @@ const onReset = () => {
   currentPage.value = 1;
   pageSize.value = 10;
   getDataNew();
+  mutilTable.value.clearSelection();
 };
 
 const currentPage = ref(1);
@@ -120,14 +130,20 @@ const tableData = ref([]);
 const currentInfo = ref();
 
 const getDataNew = () => {
-  customerQuery({
+  const info: any = {
     condition: {
+      // allocation: {
+      //   staff_str_id_list: checkIds.value.map(i => ({ owner_id: i }))
+      // },
       info: {
         is_deleted: false,
         name: formInline.user,
         company: formInline.company,
         phone: formInline.phone,
         updated_at: formInline.date ? (formInline.date as any) / 1000 : 0,
+        // created_at: formInline.create_at
+        //   ? (formInline.create_at as any) / 1000
+        //   : 0,
         customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id })),
         owner_pool_list: checkIds.value.map(i => ({ owner_id: i }))
       }
@@ -136,7 +152,14 @@ const getDataNew = () => {
       limit: pageSize.value,
       offset: currentPage.value - 1
     }
-  })
+  };
+  if (formInline?.range?.length) {
+    info.condition.created_at_begin = formInline.range[0] / 1000;
+    info.condition.created_at_end = Math.floor(
+      (formInline.range[1] + 86399999) / 1000
+    );
+  }
+  customerQuery(info)
     .then(res => {
       if (res.code === 200 && res.data) {
         tableData.value = res.data.customers || [];
@@ -152,7 +175,8 @@ const getDataNew = () => {
     .catch(() => {
       total.value = 0;
       tableData.value = [];
-    });
+    })
+    .finally(() => {});
 };
 
 const getData = () => {
@@ -227,7 +251,7 @@ const getTagOptions = async () => {
 };
 
 const dialogVisible = ref(false);
-const dialogData = ref({
+const dialogData = ref<any>({
   name: {
     label: "客户名称",
     value: "",
@@ -237,6 +261,7 @@ const dialogData = ref({
     label: "手机",
     value: "",
     type: "tel",
+    disabled: true,
     is_require: true
   },
   company: {
@@ -481,7 +506,7 @@ const handleDel3 = (item: any) => {
 };
 
 const handleCancelCrete = () => {
-  Object.values(dialogData.value).forEach(item => {
+  Object.values(dialogData.value).forEach((item: any) => {
     item.value = "";
   });
   isEdit.value = false;
@@ -500,7 +525,7 @@ const handleEdit = (item: any) => {
 
 const handleConfirm = () => {
   let flag = false;
-  Object.values(dialogData.value).some(item => {
+  Object.values(dialogData.value).some((item: any) => {
     if ((item as any).is_require && !item.value) {
       message(`请输入${item.label}`, { type: "info" });
       flag = true;
@@ -539,6 +564,7 @@ const handleConfirm = () => {
           message(isEdit.value ? "编辑成功" : "添加成功", { type: "success" });
           getDataNew();
           handleCancelCrete();
+          mutilTable.value.clearSelection();
         } else {
           message(isEdit.value ? "编辑失败" : "添加失败", { type: "error" });
         }
@@ -575,6 +601,7 @@ const handleDel = (item: any) => {
         if (res.code === 200) {
           message("删除成功", { type: "success" });
           getDataNew();
+          mutilTable.value.clearSelection();
         } else {
           message("删除失败", { type: "error" });
         }
@@ -787,10 +814,25 @@ function replaceKey(array: any) {
 
 const mulTableData = ref([]);
 const mulDialogVisiable = ref(false);
+const mulCurrentPage = ref(1);
+const mulTotal = ref(0);
 
 const handleMulCancel = () => {
   mulTableData.value = [];
+  mulCurrentPage.value = 1;
+  mulTotal.value = 0;
   mulDialogVisiable.value = false;
+};
+
+const visiableMul = computed(() => {
+  return mulTableData.value.slice(
+    (mulCurrentPage.value - 1) * 10,
+    mulCurrentPage.value * 10
+  );
+});
+
+const handleCurrentChangeMul = (val: number) => {
+  mulCurrentPage.value = val;
 };
 
 const handleMul = () => {
@@ -816,13 +858,15 @@ const handleMul = () => {
         let flag = false;
         const keys = Object.values(keyMap);
         // 交集
-        keys.map(key => {
-          if (!Object.keys(checktExcel).includes(key)) {
+        Object.keys(checktExcel).map(key => {
+          if (!keys.includes(key)) {
             flag = true;
           }
         });
         if (flag) {
-          message("请使用正确的模版文件", { type: "info" });
+          message("请使用正确的模版文件，下载模版文件并编辑进行导入", {
+            type: "info"
+          });
           return;
         }
         const names = cloneAllTags.value.map(item => {
@@ -847,6 +891,7 @@ const handleMul = () => {
           }
         });
         mulTableData.value = data;
+        mulTotal.value = data.length;
 
         mulDialogVisiable.value = true;
       }
@@ -884,6 +929,7 @@ const handleConfirmImport = () => {
         message("导入成功", { type: "success" });
         handleMulCancel();
         getDataNew();
+        mutilTable.value.clearSelection();
       } else {
         message("导入失败", { type: "error" });
       }
@@ -1058,6 +1104,100 @@ const getOrgStaffData = () => {
   });
 };
 
+// 并发请求函数
+const concurrencyRequest = (fn: any, urls: any, maxNum: number) => {
+  return new Promise(resolve => {
+    if (urls.length === 0) {
+      resolve([]);
+      return;
+    }
+    const results = [];
+    let index = 0; // 下一个请求的下标
+    let count = 0; // 当前请求完成的数量
+
+    // 发送请求
+    async function request() {
+      if (index === urls.length) return;
+      const i = index; // 保存序号，使result和urls相对应
+      const url = urls[index];
+      index++;
+      try {
+        const resp = await fn(url);
+        // resp 加入到results
+        results[i] = resp;
+      } catch (err) {
+        // err 加入到results
+        results[i] = err;
+      } finally {
+        count++;
+        // 判断是否所有的请求都已完成
+        if (count === urls.length) {
+          resolve(results);
+        }
+        request();
+      }
+    }
+
+    // maxNum和urls.length取最小进行调用
+    const times = Math.min(maxNum, urls.length);
+    for (let i = 0; i < times; i++) {
+      request();
+    }
+  });
+};
+
+const selectList = ref([]);
+const mutilTable = ref<any>(null);
+
+const handleSelectionChange = (val: any) => {
+  if (val.length) {
+    selectList.value = val;
+  } else {
+    selectList.value = [];
+  }
+};
+
+const handleMulDel = async () => {
+  if (!selectList.value.length) {
+    message("请选择要删除的客户", { type: "info" });
+    return;
+  }
+  const urls = selectList.value.map(item =>
+    Object.assign(item, { is_deleted: true })
+  );
+
+  ElMessageBox.confirm("确认删除选择的客户?", "提示", {
+    confirmButtonText: "确认删除",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      batchDelCustomer({
+        customer_id_str_list: urls.map(item => item.id),
+        state: 1
+      })
+        .then(res => {
+          if (res.code === 200) {
+            if (!res.data.reason) {
+              message("删除成功", { type: "success" });
+              getDataNew();
+              mutilTable.value.clearSelection();
+            } else {
+              message(res.data.reason, { type: "error" });
+            }
+          }
+        })
+        .catch(err => {
+          message(err?.response?.data?.msg || "删除失败", { type: "error" });
+        });
+      // concurrencyRequest(customerUpte, urls, 5).then(res => {
+      //   message("删除成功", { type: "success" });
+      //   getDataNew();
+      // });
+    })
+    .catch(() => {});
+};
+
 onMounted(() => {
   // getData();
   // getTagOptions();
@@ -1209,6 +1349,25 @@ onMounted(() => {
               </div>
             </el-popover>
           </el-form-item>
+          <!-- <el-form-item label="创建时间">
+            <el-date-picker
+              v-model="formInline.create_at"
+              type="date"
+              placeholder="请选择"
+              value-format="x"
+              clearable
+            />
+          </el-form-item> -->
+          <el-form-item label="创建日期">
+            <el-date-picker
+              v-model="formInline.range"
+              type="daterange"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="x"
+              clearable
+            />
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSubmit">查询</el-button>
             <el-button type="default" @click="onReset">重置</el-button>
@@ -1216,11 +1375,19 @@ onMounted(() => {
         </el-form>
       </div>
       <el-table
+        ref="mutilTable"
         :data="tableData"
         header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
         style="width: 100%"
         class="flex-1"
+        :row-key="
+          row => {
+            return row.id;
+          }
+        "
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" reserve-selection width="30" />
         <el-table-column type="expand">
           <template #default="props">
             <div
@@ -1256,6 +1423,7 @@ onMounted(() => {
                   v-for="item in props.row.customer_tag_list"
                   :key="item.id"
                   class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                  :class="{ hidden: item.tag.just_show_for_admin && !isAdmin }"
                 >
                   {{ item.tag.name }}
                 </div>
@@ -1287,11 +1455,11 @@ onMounted(() => {
         <el-table-column prop="wechat" label="微信" />
         <el-table-column prop="wecom" label="企业微信" />
         <el-table-column prop="qq" label="QQ" />
-        <!-- <el-table-column label="添加时间" width="200" sortable>
+        <el-table-column label="创建时间" width="200" sortable>
           <template #default="props">
             {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
           </template>
-        </el-table-column> -->
+        </el-table-column>
         <el-table-column #default="props" label="操作" fixed="right" width="80">
           <el-dropdown trigger="click">
             <el-icon :size="20"><More /></el-icon>
@@ -1365,7 +1533,14 @@ onMounted(() => {
           </div> -->
         </el-table-column>
       </el-table>
-      <div class="mt-4 flex justify-end">
+      <div class="mt-4 flex justify-between">
+        <el-button
+          v-if="actions.includes('CreateCustomerAction')"
+          type="primary"
+          :disabled="!selectList.length"
+          @click="handleMulDel"
+          >批量删除</el-button
+        >
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -1398,6 +1573,7 @@ onMounted(() => {
             <el-input
               v-model="item.value"
               :type="item.type"
+              :disabled="item.disabled"
               :placeholder="'请输入' + item.label"
               clearable
             />
@@ -1515,13 +1691,13 @@ onMounted(() => {
     <el-dialog
       v-model="mulDialogVisiable"
       title="批量导入"
-      width="500"
+      width="700"
       @closed="handleMulCancel"
     >
       <el-table
         header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
         max-height="320"
-        :data="mulTableData"
+        :data="visiableMul"
       >
         <el-table-column
           prop="name"
@@ -1537,6 +1713,7 @@ onMounted(() => {
                   v-for="item in props.row.customer_tag_list"
                   :key="item.id"
                   class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                  :class="{ hidden: item.just_show_for_admin && !isAdmin }"
                 >
                   {{ item.name }}
                 </div>
@@ -1554,6 +1731,14 @@ onMounted(() => {
       </el-table>
       <template #footer>
         <div class="dialog-footer">
+          <el-pagination
+            v-model:current-page="mulCurrentPage"
+            class="flex-wrap gap-y-2 mt-4"
+            background
+            layout="total, prev, pager, next, jumper"
+            :total="mulTotal"
+            @current-change="handleCurrentChangeMul"
+          />
           <el-checkbox v-model="isFrocemul" class="!mr-2">是否覆盖</el-checkbox>
           <el-button @click="handleMulCancel">取消</el-button>
           <el-button type="primary" @click="handleConfirmImport">

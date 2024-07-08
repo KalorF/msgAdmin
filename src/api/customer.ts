@@ -159,3 +159,7 @@ export const deleteQueryView = (data: any) => {
     data
   });
 };
+
+export const batchDelCustomer = (data: any) => {
+  return http.request<any>("post", "/api/customer/batch/delete", { data });
+};

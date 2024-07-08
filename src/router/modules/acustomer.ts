@@ -1,8 +1,8 @@
 export default {
-  path: '/customer',
+  path: "/customer",
   meta: {
-    icon: 'solar:user-id-outline',
-    title: '客户管理'
+    icon: "solar:user-id-outline",
+    title: "公海库"
   },
-  component: () => import("@/views/customer/index.vue"),
-}
+  component: () => import("@/views/customer/index.vue")
+};

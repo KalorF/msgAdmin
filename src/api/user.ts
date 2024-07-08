@@ -49,3 +49,7 @@ export const getPolicyByUserId = (data: any) => {
 export const policyUpsert = (data: any) => {
   return http.request<any>("post", "/api/auth/policy/upsert", { data });
 };
+
+export const roleUpsert = (data: any) => {
+  return http.request<any>("post", "/api/auth/role/upsert", { data });
+};

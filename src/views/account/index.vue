@@ -16,6 +16,7 @@ import dayjs from "dayjs";
 import policyDialog from "@/components/policy/index.vue";
 import { usePermissionActionStroe } from "@/store/modules/permission";
 import { useUserStoreHook } from "@/store/modules/user";
+import roleDailog from "@/components/roleDailog/index.vue";
 
 defineOptions({
   name: "accountlist"
@@ -269,10 +270,11 @@ const confrimModifyPwd = () => {
 
 const currentInfo = ref();
 const policyShow = ref(false);
+const roleShow = ref(false);
 
 const handleViewPolicy = (item: any) => {
   currentInfo.value = item;
-  policyShow.value = true;
+  roleShow.value = true;
 };
 
 onMounted(() => {
@@ -305,6 +307,13 @@ onMounted(() => {
           <el-button type="default" @click="onReset">重置</el-button>
         </el-form-item>
       </el-form>
+      <el-button
+        v-if="actions.includes('UpdateAccount')"
+        class="ml-auto mb-5"
+        type="default"
+        @click="policyShow = true"
+        >权限设置</el-button
+      >
       <el-button
         v-if="actions.includes('CreateAccount')"
         class="ml-auto mb-5"
@@ -348,7 +357,7 @@ onMounted(() => {
           {{ dayjs(+scope.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
         </template>
       </el-table-column>
-      <el-table-column label="权限" align="center">
+      <el-table-column label="角色" align="center">
         <template #default="scope">
           <el-button
             v-if="actions.includes('UpdateAccount')"
@@ -356,7 +365,7 @@ onMounted(() => {
             text
             type="primary"
             @click="handleViewPolicy(scope.row)"
-            >编辑权限</el-button
+            >编辑角色</el-button
           >
         </template>
       </el-table-column>
@@ -514,6 +523,11 @@ onMounted(() => {
       :show="policyShow"
       :info="currentInfo"
       @close="policyShow = false"
+    />
+    <roleDailog
+      :show="roleShow"
+      :info="currentInfo"
+      @close="roleShow = false"
     />
   </div>
 </template>
