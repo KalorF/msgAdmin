@@ -251,6 +251,8 @@ const getTagOptions = async () => {
 };
 
 const dialogVisible = ref(false);
+const isEdit = ref(false);
+
 const dialogData = ref<any>({
   name: {
     label: "客户名称",
@@ -300,210 +302,6 @@ const dialogData = ref<any>({
     type: "textarea"
   }
 });
-
-const dialogVisible2 = ref(false);
-const dialogData2 = ref({
-  content: {
-    label: "回访记录：",
-    value: "",
-    type: "textarea"
-  },
-  follow_at: {
-    label: "跟进时间：",
-    value: "",
-    type: "datetime"
-  }
-});
-
-const dialogVisible3 = ref(false);
-const dialogData3 = ref({
-  visit_content: {
-    label: "访客记录：",
-    value: "",
-    type: "textarea"
-  },
-  visit_at: {
-    label: "来访时间：",
-    value: "",
-    type: "datetime"
-  }
-});
-
-const isEdit = ref(false);
-const currentRecordInfo = ref(null);
-
-const handleCancelCrete2 = () => {
-  Object.values(dialogData2.value).forEach(item => {
-    item.value = "";
-  });
-  isEdit.value = false;
-  currentRecordInfo.value = null;
-  dialogVisible2.value = false;
-};
-
-const handleCancelCrete3 = () => {
-  Object.values(dialogData3.value).forEach(item => {
-    item.value = "";
-  });
-  isEdit.value = false;
-  currentRecordInfo.value = null;
-  dialogVisible3.value = false;
-};
-
-const handleEdit2 = (item: any) => {
-  Object.keys(dialogData2.value).map(key => {
-    dialogData2.value[key].value = item[key];
-    if (key === "follow_at") {
-      (dialogData2.value[key].value as any) = item[key] * 1000;
-    }
-  });
-  isEdit.value = true;
-  currentRecordInfo.value = item;
-  dialogVisible2.value = true;
-};
-
-const handleEdit3 = (item: any) => {
-  Object.keys(dialogData3.value).map(key => {
-    dialogData3.value[key].value = item[key];
-    if (key === "visit_at") {
-      (dialogData3.value[key].value as any) = item[key] * 1000;
-    }
-  });
-  isEdit.value = true;
-  currentRecordInfo.value = item;
-  dialogVisible3.value = true;
-};
-
-const handleConfirm2 = () => {
-  let flag = false;
-  Object.values(dialogData2.value).some(item => {
-    if (!item.value) {
-      message(`请输入${item.label}`, { type: "info" });
-      flag = true;
-      return true;
-    }
-  });
-  if (!flag) {
-    const data: any = {};
-    Object.keys(dialogData2.value).forEach(key => {
-      if (key === "follow_at") {
-        data[key] = (dialogData2.value[key].value as any) / 1000;
-      } else {
-        data[key] = dialogData2.value[key].value;
-      }
-    });
-    if (isEdit.value) {
-      data.id = currentRecordInfo.value.id;
-    }
-    data.customer_id = currentInfo.value.id;
-    data.staff_id = userStore.userInfo.id;
-    const func = isEdit.value ? recordUpdate : createCustomerRecoed;
-    func({ ...data })
-      .then(res => {
-        if (res.code === 200) {
-          message(isEdit.value ? "编辑成功" : "添加成功", { type: "success" });
-          getRecord();
-          handleCancelCrete();
-        } else {
-          message(isEdit.value ? "编辑失败" : "添加失败", { type: "error" });
-        }
-      })
-      .catch(err => {
-        if (err?.response?.data?.msg) {
-          message(err?.response?.data?.msg, { type: "error" });
-        } else {
-          message(isEdit.value ? "编辑失败" : "添加失败", { type: "error" });
-        }
-      });
-  }
-
-  handleCancelCrete2();
-};
-
-const handleConfirm3 = () => {
-  let flag = false;
-  Object.values(dialogData3.value).some(item => {
-    if (!item.value) {
-      message(`请输入${item.label}`, { type: "info" });
-      flag = true;
-      return true;
-    }
-  });
-  if (!flag) {
-    const data: any = {};
-    Object.keys(dialogData3.value).forEach(key => {
-      if (key === "visit_at") {
-        data[key] = (dialogData3.value[key].value as any) / 1000;
-        data.to_visit_at = (dialogData3.value[key].value as any) / 1000;
-      } else {
-        data[key] = dialogData3.value[key].value;
-      }
-    });
-    if (isEdit.value) {
-      data.id = currentRecordInfo.value.id;
-    }
-    data.customer_id = currentInfo.value.id;
-    data.reception_staff_id = userStore.userInfo.id;
-    const func = isEdit.value ? visitUpdate : visitCreate;
-    func({ ...data })
-      .then(res => {
-        if (res.code === 200) {
-          message(isEdit.value ? "编辑成功" : "添加成功", { type: "success" });
-          getVisit();
-          handleCancelCrete2();
-        } else {
-          message(isEdit.value ? "编辑失败" : "添加失败", { type: "error" });
-        }
-      })
-      .catch(err => {
-        if (err?.response?.data?.msg) {
-          message(err?.response?.data?.msg, { type: "error" });
-        } else {
-          message(isEdit.value ? "编辑失败" : "添加失败", { type: "error" });
-        }
-      });
-  }
-
-  handleCancelCrete3();
-};
-
-const handleDel2 = (item: any) => {
-  ElMessageBox.confirm("确认删除该记录吗?", "提示", {
-    confirmButtonText: "确认删除",
-    cancelButtonText: "取消",
-    type: "warning"
-  })
-    .then(() => {
-      recordDel(item.id).then(res => {
-        if (res.code === 200) {
-          message("删除成功", { type: "success" });
-          getRecord();
-        } else {
-          message("删除失败", { type: "error" });
-        }
-      });
-    })
-    .catch(() => {});
-};
-
-const handleDel3 = (item: any) => {
-  ElMessageBox.confirm("确认删除该记录吗?", "提示", {
-    confirmButtonText: "确认删除",
-    cancelButtonText: "取消",
-    type: "warning"
-  })
-    .then(() => {
-      delVisit(item.id).then(res => {
-        if (res.code === 200) {
-          message("删除成功", { type: "success" });
-          getVisit();
-        } else {
-          message("删除失败", { type: "error" });
-        }
-      });
-    })
-    .catch(() => {});
-};
 
 const handleCancelCrete = () => {
   Object.values(dialogData.value).forEach((item: any) => {
@@ -616,79 +414,6 @@ const handleChangeActive = () => {
   if (activeValue.value === "has") {
     getDataNew();
   }
-};
-
-const dialogTableVisible = ref(false);
-const currentPage2 = ref(1);
-const total2 = ref(0);
-const dialogTableData = ref([]);
-
-const dialogTableVisible2 = ref(false);
-const dialogTableData2 = ref([]);
-const currentPage3 = ref(1);
-const total3 = ref(0);
-
-const getRecord = () => {
-  return recordListByCustomer({
-    customer_id: currentInfo.value.id,
-    staff_id: userStore.userInfo.id,
-    limit: 5,
-    offset: currentPage2.value - 1
-  })
-    .then(res => {
-      if (res.code === 200) {
-        dialogTableData.value = res.data.records || [];
-        total2.value = res.data.count || 0;
-      }
-    })
-    .catch(() => {
-      dialogTableData.value = [];
-      total2.value = 0;
-    });
-};
-
-const getVisit = () => {
-  return visitListByCustomer({
-    customer_id: currentInfo.value.id,
-    limit: 5,
-    offset: currentPage2.value - 1
-  })
-    .then(res => {
-      if (res.code === 200) {
-        dialogTableData2.value = res.data.records || [];
-        total3.value = res.data.total || 0;
-      }
-    })
-    .catch(() => {
-      dialogTableData2.value = [];
-      total3.value = 0;
-    });
-};
-
-const handleViewVisit = (item: any) => {
-  currentInfo.value = item;
-  currentPage2.value = 1;
-  total2.value = 0;
-  getRecord();
-  dialogTableVisible.value = true;
-};
-
-const handleViewVisit2 = (item: any) => {
-  currentInfo.value = item;
-  currentPage3.value = 1;
-  total3.value = 0;
-  getVisit();
-  dialogTableVisible2.value = true;
-};
-
-const handleCurrentChange2 = (value: number) => {
-  currentPage2.value = value;
-  getRecord();
-};
-
-const handleCurrentChange3 = (value: number) => {
-  currentPage3.value = value;
-  getVisit();
 };
 
 const keyMap = {
@@ -995,63 +720,6 @@ const handleConfirmTag = () => {
     });
 };
 
-const callialogVisiable = ref(false);
-const callTableData = ref([]);
-const callTtoal = ref(0);
-const callCurrentPage = ref(1);
-
-const getCallData = () => {
-  return getCallListByCustomer({
-    customer_id: currentInfo.value.id,
-    limit: 5,
-    offset: callCurrentPage.value - 1
-  })
-    .then(res => {
-      if (res.code === 200) {
-        callTableData.value = res.data.records || [];
-        callTtoal.value = res.data.total;
-      } else {
-        callTableData.value = [];
-        callTtoal.value = 0;
-      }
-    })
-    .catch(() => {
-      callTableData.value = [];
-      callTtoal.value = 0;
-    });
-};
-
-const viewCall = async (item: any) => {
-  currentInfo.value = item;
-  await getCallData();
-  callialogVisiable.value = true;
-};
-
-const msToTime = duration => {
-  // const milliseconds = parseInt((duration % 1000) / 100);
-  const seconds = Math.floor((duration / 1000) % 60);
-  const minutes = Math.floor((duration / (1000 * 60)) % 60);
-  const hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
-
-  let text = "";
-  if (hours) {
-    text += hours + " 小时";
-  }
-  if (minutes) {
-    text += minutes + " 分";
-  }
-  if (seconds) {
-    text += seconds + " 秒";
-  }
-
-  return text;
-};
-
-const handleCurrentChangeCall = (val: number) => {
-  callCurrentPage.value = val;
-  getCallData();
-};
-
 const recordDialog = ref(false);
 const orgDialogShow = ref(false);
 const orgTitle = ref("");
@@ -1194,6 +862,146 @@ const handleMulDel = async () => {
       //   message("删除成功", { type: "success" });
       //   getDataNew();
       // });
+    })
+    .catch(() => {});
+};
+
+const mulNumVisiable = ref(false);
+const mulNumber = ref(1);
+
+const handleMulNumberCancel = () => {
+  mulNumber.value = 1;
+  mulNumVisiable.value = false;
+};
+
+const mulNumTableVisiable = ref(false);
+const mulNumTableData = ref<any[]>([]);
+const mutilTableref = ref<any>(null);
+const selMulNum = ref([]);
+const currentPageNum = ref(1);
+const pageSizeNum = ref(10);
+const totalNum = ref(0);
+const showMulLoading = ref(false);
+
+const mulNumTableDataVis = computed(() => {
+  if (mulNumTableData.value.length) {
+    return mulNumTableData.value.slice(
+      (currentPageNum.value - 1) * pageSizeNum.value,
+      currentPageNum.value * pageSizeNum.value
+    );
+  }
+  return [];
+});
+
+const handleSizeChangeNum = (val: number) => {
+  pageSizeNum.value = val;
+};
+
+const handleCurrentChangeNum = (val: number) => {
+  currentPageNum.value = val;
+};
+
+const handleMulNumberTableCancel = () => {
+  mulNumTableVisiable.value = false;
+  totalNum.value = 0;
+  currentPageNum.value = 1;
+  pageSizeNum.value = 10;
+  selMulNum.value = [];
+  mulNumTableData.value = [];
+};
+
+const handleSelectionChangeMul = (val: any) => {
+  if (val.length) {
+    selMulNum.value = val;
+  } else {
+    selMulNum.value = [];
+  }
+};
+
+const handleConfrimNumber = () => {
+  mulNumVisiable.value = false;
+  showMulLoading.value = true;
+  mulNumTableVisiable.value = true;
+  setTimeout(() => {
+    mutilTableref.value.clearSelection();
+  }, 100);
+
+  const info: any = {
+    condition: {
+      info: {
+        is_deleted: false,
+        name: formInline.user,
+        company: formInline.company,
+        phone: formInline.phone,
+        updated_at: formInline.date ? (formInline.date as any) / 1000 : 0,
+        customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id })),
+        owner_pool_list: checkIds.value.map(i => ({ owner_id: i }))
+      }
+    },
+    page: {
+      limit: mulNumber.value,
+      offset: 0
+    }
+  };
+  if (formInline?.range?.length) {
+    info.condition.created_at_begin = formInline.range[0] / 1000;
+    info.condition.created_at_end = Math.floor(
+      (formInline.range[1] + 86399999) / 1000
+    );
+  }
+  customerQuery(info)
+    .then(res => {
+      if (res.code === 200 && res.data) {
+        mulNumTableData.value = res.data.customers || [];
+        if (tableData.value.length) {
+          mulNumTableData.value = mulNumTableData.value.filter(
+            item => !item.is_deleted
+          );
+          mulNumTableData.value.map(item => {
+            mutilTableref.value.toggleRowSelection(item, true);
+          });
+        }
+        totalNum.value = mulNumTableData.value.length || 0;
+      } else {
+        totalNum.value = 0;
+        mulNumTableData.value = [];
+      }
+    })
+    .catch(() => {
+      totalNum.value = 0;
+      mulNumTableData.value = [];
+    })
+    .finally(() => {
+      showMulLoading.value = false;
+    });
+};
+
+const handleMulTableDel = () => {
+  ElMessageBox.confirm("确认删除选择的客户?", "提示", {
+    confirmButtonText: "确认删除",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      batchDelCustomer({
+        customer_id_str_list: selMulNum.value.map(item => item.id),
+        state: 1
+      })
+        .then(res => {
+          if (res.code === 200) {
+            if (!res.data.reason) {
+              message("删除成功", { type: "success" });
+              handleMulNumberTableCancel();
+              getDataNew();
+              mutilTable.value.clearSelection();
+            } else {
+              message(res.data.reason, { type: "error" });
+            }
+          }
+        })
+        .catch(err => {
+          message(err?.response?.data?.msg || "删除失败", { type: "error" });
+        });
     })
     .catch(() => {});
 };
@@ -1534,13 +1342,21 @@ onMounted(() => {
         </el-table-column>
       </el-table>
       <div class="mt-4 flex justify-between">
-        <el-button
-          v-if="actions.includes('CreateCustomerAction')"
-          type="primary"
-          :disabled="!selectList.length"
-          @click="handleMulDel"
-          >批量删除</el-button
-        >
+        <div class="flex items-center">
+          <el-button
+            v-if="actions.includes('CreateCustomerAction')"
+            type="primary"
+            :disabled="!selectList.length"
+            @click="handleMulDel"
+            >批量删除</el-button
+          >
+          <div
+            class="text-amber-500 hover:text-amber-400 cursor-default ml-2 text-sm"
+            @click="mulNumVisiable = true"
+          >
+            按数量删除
+          </div>
+        </div>
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -1573,7 +1389,7 @@ onMounted(() => {
             <el-input
               v-model="item.value"
               :type="item.type"
-              :disabled="item.disabled"
+              :disabled="item.disabled && isEdit"
               :placeholder="'请输入' + item.label"
               clearable
             />
@@ -1588,104 +1404,6 @@ onMounted(() => {
           </el-button>
         </div>
       </template>
-    </el-dialog>
-
-    <el-dialog v-model="dialogTableVisible" title="回访记录" width="500">
-      <el-button size="small" class="mb-2" @click="dialogVisible2 = true"
-        >添加记录</el-button
-      >
-      <el-table
-        header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
-        :data="dialogTableData"
-      >
-        <el-table-column
-          prop="content"
-          label="回访内容"
-          fixed="left"
-          width="180"
-        />
-        <el-table-column label="回访员工" width="100">
-          <template #default="props">
-            {{ props.row.staff?.name }}
-          </template>
-        </el-table-column>
-        <el-table-column label="跟进时间" width="100">
-          <template #default="props">
-            {{ dayjs(props.row.follow_at * 1000).format("YYYY-MM-DD HH:mm") }}
-          </template>
-        </el-table-column>
-        <el-table-column label="员工电话" width="100">
-          <template #default="props">
-            {{ props.row.staff?.phone }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120">
-          <template #default="props">
-            <el-button link @click="handleEdit2(props.row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDel2(props.row)"
-              >删除</el-button
-            >
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-pagination
-        v-if="total2"
-        v-model:current-page="currentPage2"
-        class="flex-wrap gap-y-2 mt-4"
-        background
-        layout="total, prev, pager, next, jumper"
-        :total="total2"
-        @current-change="handleCurrentChange2"
-      />
-    </el-dialog>
-
-    <el-dialog v-model="dialogTableVisible2" title="访客记录" width="500">
-      <el-button size="small" class="mb-2" @click="dialogVisible3 = true"
-        >添加记录</el-button
-      >
-      <el-table
-        header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
-        :data="dialogTableData2"
-      >
-        <el-table-column
-          prop="visit_content"
-          fixed="left"
-          label="内容"
-          width="200"
-        />
-        <el-table-column label="来访时间" width="100">
-          <template #default="props">
-            {{ dayjs(props.row.visit_at * 1000).format("YYYY-MM-DD HH:mm") }}
-          </template>
-        </el-table-column>
-        <el-table-column label="接待员工" width="100">
-          <template #default="props">
-            {{ props.row.reception_staff?.name }}
-          </template>
-        </el-table-column>
-        <el-table-column label="员工电话" width="100">
-          <template #default="props">
-            {{ props.row.reception_staff?.phone }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120">
-          <template #default="props">
-            <el-button link @click="handleEdit3(props.row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDel3(props.row)"
-              >删除</el-button
-            >
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-pagination
-        v-if="total3"
-        v-model:current-page="currentPage3"
-        class="flex-wrap gap-y-2 mt-4"
-        background
-        layout="total, prev, pager, next, jumper"
-        :total="total3"
-        @current-change="handleCurrentChange3"
-      />
     </el-dialog>
 
     <el-dialog
@@ -1776,122 +1494,147 @@ onMounted(() => {
     </el-dialog>
 
     <el-dialog
-      v-model="dialogVisible2"
-      title="回访记录"
-      width="400"
-      align-center
-      @closed="handleCancelCrete2"
+      v-model="mulNumVisiable"
+      title="按数量批量删除"
+      width="350"
+      @closed="handleMulNumberCancel"
     >
-      <el-form label-position="top" class="demo-form-inline">
-        <el-form-item
-          v-for="(item, key) in dialogData2"
-          :key="key"
-          :label="item.label"
-        >
-          <el-date-picker
-            v-if="item.type === 'datetime'"
-            v-model="item.value"
-            type="datetime"
-            value-format="x"
-            placeholder="请选择时间"
-          />
-          <el-input
-            v-else
-            v-model="item.value"
-            :type="item.type"
-            :placeholder="'请输入' + item.label"
-            clearable
-          />
-        </el-form-item>
-      </el-form>
+      <div class="flex flex-col">
+        <div class="mb-2">请输入删除前多少条数据:</div>
+        <el-input-number
+          v-model="mulNumber"
+          style="width: 200px"
+          placeholder="请输入"
+        />
+      </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleCancelCrete2">取消</el-button>
-          <el-button type="primary" @click="handleConfirm2">
-            {{ isEdit ? "确认修改" : "添加记录" }}
+          <el-button @click="handleMulNumberCancel">取消</el-button>
+          <el-button type="primary" @click="handleConfrimNumber">
+            确认
           </el-button>
         </div>
       </template>
     </el-dialog>
 
     <el-dialog
-      v-model="dialogVisible3"
-      title="访客记录"
-      width="400"
-      align-center
-      @closed="handleCancelCrete3"
+      v-model="mulNumTableVisiable"
+      title="客户数据"
+      width="700"
+      @closed="handleMulNumberTableCancel"
     >
-      <el-form label-position="top" class="demo-form-inline">
-        <el-form-item
-          v-for="(item, key) in dialogData3"
-          :key="key"
-          :label="item.label"
-        >
-          <el-date-picker
-            v-if="item.type === 'datetime'"
-            v-model="item.value"
-            type="datetime"
-            value-format="x"
-            placeholder="请选择时间"
-          />
-          <el-input
-            v-else
-            v-model="item.value"
-            :type="item.type"
-            :placeholder="'请输入' + item.label"
-            clearable
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="handleCancelCrete3">取消</el-button>
-          <el-button type="primary" @click="handleConfirm3">
-            {{ isEdit ? "确认修改" : "添加记录" }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="callialogVisiable" title="访客记录" width="450">
-      <el-table
-        header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
-        :data="callTableData"
+      <el-button
+        class="mb-2"
+        type="primary"
+        :disabled="!selMulNum.length"
+        @click="handleMulTableDel"
+        >确认删除</el-button
       >
-        <el-table-column prop="call_long" label="拨打时长">
+      <el-table
+        ref="mutilTableref"
+        v-loading="showMulLoading"
+        :data="mulNumTableDataVis"
+        header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
+        style="width: 100%"
+        :height="400"
+        class="flex-1"
+        :row-key="
+          row => {
+            return row.id;
+          }
+        "
+        @selection-change="handleSelectionChangeMul"
+      >
+        <el-table-column type="selection" reserve-selection width="30" />
+        <el-table-column type="expand">
           <template #default="props">
-            {{
-              // dayjs.duration(props.row.call_long, "seconds").format("HH:mm:ss")
-              msToTime(props.row.call_long)
-            }}
+            <div
+              class="ml-16 text-zinc-500 text-sm flex flex-col flex-wrap content-start gap-1"
+            >
+              <p>地址：{{ props.row.address }}</p>
+              <p>工作地址：{{ props.row.working_address }}</p>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="拨打时间" width="150">
+        <el-table-column label="客户名称" width="150">
           <template #default="props">
-            {{ dayjs(props.row.call_at * 1000).format("YYYY-MM-DD HH:mm") }}
+            <div class="flex items-center">
+              <el-icon :size="24" class="mr-2" color="#393e46"
+                ><Avatar
+              /></el-icon>
+              {{ props.row.name }}
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="通话员工">
+        <el-table-column label="客户标签" width="230">
           <template #default="props">
-            {{ props.row.staff?.name }}
+            <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+              <el-icon
+                v-if="actions.includes('UpdateCustomerAction')"
+                class="!text-zinc-600 hover:!text-zinc-400"
+                :size="18"
+                @click="handleEditTag(props.row)"
+                ><EditPen
+              /></el-icon>
+              <template v-if="props.row.customer_tag_list">
+                <div
+                  v-for="item in props.row.customer_tag_list"
+                  :key="item.id"
+                  class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                  :class="{ hidden: item.tag.just_show_for_admin && !isAdmin }"
+                >
+                  {{ item.tag.name }}
+                </div>
+              </template>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="员工手机">
+        <el-table-column label="跟进员工" width="160">
           <template #default="props">
-            {{ props.row.staff?.phone }}
+            <template
+              v-if="
+                props.row.owner_pool_list && props.row.owner_pool_list.length
+              "
+            >
+              <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+                <div
+                  v-for="(item, idx) in props.row.owner_pool_list"
+                  :key="idx"
+                  class="p-1 px-2 text-xs rounded-md bg-[#f5f5f5] text-[#303841]"
+                >
+                  {{ item.staff_owner.name || item.staff_owner.account }}
+                </div>
+              </div>
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column prop="phone" width="140" label="手机" />
+        <el-table-column prop="company" width="180" label="公司" />
+        <el-table-column prop="wechat" label="微信" />
+        <el-table-column prop="wecom" label="企业微信" />
+        <el-table-column prop="qq" label="QQ" />
+        <el-table-column label="创建时间" width="200" sortable>
+          <template #default="props">
+            {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination
-        v-if="callTtoal"
-        v-model:current-page="currentPage3"
-        class="flex-wrap gap-y-2 mt-4"
-        background
-        layout="total, prev, pager, next, jumper"
-        :total="callTtoal"
-        @current-change="handleCurrentChangeCall"
-      />
+      <div class="mt-4">
+        <el-pagination
+          v-if="totalNum"
+          v-model:current-page="currentPageNum"
+          v-model:page-size="pageSizeNum"
+          class="flex-wrap gap-y-2"
+          :page-sizes="[10, 20, 30, 40]"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="totalNum"
+          @size-change="handleSizeChangeNum"
+          @current-change="handleCurrentChangeNum"
+        />
+      </div>
     </el-dialog>
+
     <recrodDialog
       :show="recordDialog"
       :info="currentInfo"

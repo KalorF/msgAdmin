@@ -472,7 +472,7 @@ onMounted(() => {
     </el-table-column>
   </el-table>
   <div class="mt-4 flex justify-between">
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1">
       <el-button
         v-if="actions.includes('CreateCustomerAction')"
         type="primary"

@@ -69,6 +69,19 @@ defineOptions({
   name: "customerlist2"
 });
 
+const guid = () => {
+  let d = new Date().getTime();
+  const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    function (c) {
+      const r = (d + Math.random() * 16) % 16 | 0;
+      d = Math.floor(d / 16);
+      return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
+    }
+  );
+  return uuid;
+};
+
 const permission = usePermissionActionStroe();
 const perm = usePermissionStoreHook();
 const actions = computed(() => permission.value);
@@ -529,17 +542,16 @@ const startTime = ref(0);
 const callTime = ref(0);
 const startCall = ref(false);
 
-const callback = () => {
-  operateCreate({
-    call_duration: callTime.value,
-    call_at: Math.round(startTime.value / 1000),
-    call_audio_url: "",
-    content: "",
-    customer_id: currentCustomerInfo.value.id,
-    staff_id: userStore.userInfo.id,
-    flow_type: FLOW_TYPE.RUKU,
-    record_type: RECORD_TYPE.CALL_PHONE,
-    progress_id: currentCustomerInfo.value.progress_id
+const callback = (json: any) => {
+  operateCreate(json).finally(() => {
+    let callLogs: any = window.localStorage.getItem("_callLogs");
+    if (callLogs) {
+      let json: any = JSON.parse(callLogs);
+      delete json[uid];
+      window.localStorage.setItem("_callLogs", JSON.stringify(json));
+    } else {
+      window.localStorage.setItem("_callLogs", null);
+    }
   });
   // createCall({
   //   call_long: callTime.value,
@@ -582,10 +594,45 @@ window.addEventListener("beforeunload", async () => {
   }
 });
 
+let uid = "";
+
 const visiableChange = () => {
   if (document.visibilityState === "hidden" && startCall.value) {
     recorderContext.start();
     startTime.value = Date.now();
+    let callLogs: any = window.localStorage.getItem("_callLogs");
+    uid = guid();
+    if (!callLogs) {
+      callLogs = {};
+      callLogs[uid] = {
+        call_duration: 0,
+        call_at: Math.round(startTime.value / 1000),
+        call_audio_url: "",
+        content: "",
+        customer_id: currentCustomerInfo.value.id,
+        staff_id: userStore.userInfo.id,
+        flow_type: FLOW_TYPE.RUKU,
+        record_type: RECORD_TYPE.CALL_PHONE,
+        progress_id: currentCustomerInfo.value.progress_id,
+        expireTime: 1000 * 60 * 30
+      };
+      window.localStorage.setItem("_callLogs", JSON.stringify(callLogs));
+    } else {
+      callLogs = JSON.parse(callLogs);
+      callLogs[uid] = {
+        call_duration: 0,
+        call_at: Math.round(startTime.value / 1000),
+        call_audio_url: "",
+        content: "",
+        customer_id: currentCustomerInfo.value.id,
+        staff_id: userStore.userInfo.id,
+        flow_type: FLOW_TYPE.RUKU,
+        record_type: RECORD_TYPE.CALL_PHONE,
+        progress_id: currentCustomerInfo.value.progress_id,
+        expireTime: 1000 * 60 * 30
+      };
+      window.localStorage.setItem("_callLogs", JSON.stringify(callLogs));
+    }
   }
   if (document.visibilityState === "visible" && startTime.value) {
     callTime.value = Date.now() - startTime.value;
@@ -594,7 +641,14 @@ const visiableChange = () => {
     //   getCorder();
     // }
     // alert("通话完成");
-    callback();
+    let callLogs: any = window.localStorage.getItem("_callLogs");
+    let json: any = JSON.parse(callLogs)[uid];
+    if (callTime.value < json.expireTime) {
+      json.call_duration = callTime.value;
+    } else {
+      json.call_duration = json.expireTime;
+    }
+    callback(json);
     startTime.value = 0;
     startCall.value = false;
   }
@@ -623,7 +677,7 @@ const handleCall = (item: any) => {
   startCall.value = true;
   // if (isOpen) {
   // startCall.value = true;
-  // currentCustomerInfo.value = item;
+  currentCustomerInfo.value = item;
   // const a = document.createElement("a");
   // a.href = `tel:${item.phone}`;
   // a.click();
@@ -991,6 +1045,19 @@ const handleFangqi = (item: any) => {
 
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", visiableChange);
+  uid = "";
+  setTimeout(() => {
+    const callLogs = window.localStorage.getItem("_callLogs");
+    if (callLogs) {
+      const jsons = JSON.parse(callLogs) || [];
+      const vals = Object.values(jsons);
+      if (vals && vals.length) {
+        vals.map(item => {
+          callback(item);
+        });
+      }
+    }
+  }, 1000);
 });
 
 const showMenu = ref(false);
