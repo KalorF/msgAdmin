@@ -18,14 +18,19 @@ import { Avatar } from "@element-plus/icons-vue";
 import { onMounted, nextTick, computed } from "vue";
 import { ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
-import { usePermissionActionStroe } from "@/store/modules/permission";
+import {
+  usePermissionActionStroe,
+  usePermissionStoreHook
+} from "@/store/modules/permission";
 
 defineOptions({
   name: "customerlist2"
 });
 
 const permission = usePermissionActionStroe();
+const perm = usePermissionStoreHook();
 const actions = computed(() => permission.value);
+const isAdmin = computed(() => perm.policies.role.RoleType === "admin");
 
 const formInline = reactive({
   user: "",
@@ -340,6 +345,131 @@ const handleMulDel = async (flag = false) => {
     .catch(() => {});
 };
 
+const mulNumVisiable = ref(false);
+const mulNumber = ref(1);
+
+const handleMulNumberCancel = () => {
+  mulNumber.value = 1;
+  mulNumVisiable.value = false;
+};
+
+const mulNumTableVisiable = ref(false);
+const mulNumTableData = ref<any[]>([]);
+const mutilTableref = ref<any>(null);
+const selMulNum = ref([]);
+const currentPageNum = ref(1);
+const pageSizeNum = ref(10);
+const totalNum = ref(0);
+const showMulLoading = ref(false);
+
+const mulNumTableDataVis = computed(() => {
+  if (mulNumTableData.value.length) {
+    return mulNumTableData.value.slice(
+      (currentPageNum.value - 1) * pageSizeNum.value,
+      currentPageNum.value * pageSizeNum.value
+    );
+  }
+  return [];
+});
+
+const handleSizeChangeNum = (val: number) => {
+  pageSizeNum.value = val;
+};
+
+const handleCurrentChangeNum = (val: number) => {
+  currentPageNum.value = val;
+};
+
+const handleMulNumberTableCancel = () => {
+  mulNumTableVisiable.value = false;
+  totalNum.value = 0;
+  currentPageNum.value = 1;
+  pageSizeNum.value = 10;
+  selMulNum.value = [];
+  mulNumTableData.value = [];
+};
+
+const handleSelectionChangeMul = (val: any) => {
+  if (val.length) {
+    selMulNum.value = val;
+  } else {
+    selMulNum.value = [];
+  }
+};
+
+const handleConfrimNumber = () => {
+  mulNumVisiable.value = false;
+  showMulLoading.value = true;
+  mulNumTableVisiable.value = true;
+  setTimeout(() => {
+    mutilTableref.value.clearSelection();
+  }, 100);
+
+  const info: any = {
+    condition: {
+      info: {
+        is_deleted: true
+      }
+    },
+    page: {
+      limit: mulNumber.value,
+      offset: 0
+    }
+  };
+  customerQuery(info)
+    .then(res => {
+      if (res.code === 200 && res.data) {
+        mulNumTableData.value = res.data.customers || [];
+        if (tableData.value.length) {
+          mulNumTableData.value.map(item => {
+            mutilTableref.value.toggleRowSelection(item, true);
+          });
+        }
+        totalNum.value = mulNumTableData.value.length || 0;
+      } else {
+        totalNum.value = 0;
+        mulNumTableData.value = [];
+      }
+    })
+    .catch(() => {
+      totalNum.value = 0;
+      mulNumTableData.value = [];
+    })
+    .finally(() => {
+      showMulLoading.value = false;
+    });
+};
+
+const handleMulTableDel = () => {
+  ElMessageBox.confirm("确认彻底删除选择的客户?", "提示", {
+    confirmButtonText: "确认删除",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      batchDelCustomer({
+        customer_id_str_list: selMulNum.value.map(item => item.id),
+        state: 2
+      })
+        .then(res => {
+          if (res.code === 200) {
+            if (!res.data.reason) {
+              message("删除成功", { type: "success" });
+              handleMulNumberTableCancel();
+              getData();
+              mutilTable.value.clearSelection();
+            } else {
+              message(res.data.reason, { type: "error" });
+            }
+          }
+        })
+        .catch(err => {
+          message(err?.response?.data?.msg || "删除失败", { type: "error" });
+        });
+    })
+    .catch(() => {});
+};
+
 onMounted(() => {
   getData();
   // getTagOptions();
@@ -449,8 +579,41 @@ onMounted(() => {
         </div>
       </template>
     </el-table-column>
-    <el-table-column prop="company" label="公司" />
     <el-table-column prop="phone" label="手机" />
+    <el-table-column label="客户标签" width="230">
+      <template #default="props">
+        <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+          <template v-if="props.row.customer_tag_list">
+            <div
+              v-for="item in props.row.customer_tag_list"
+              :key="item.id"
+              class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+              :class="{ hidden: item.tag.just_show_for_admin && !isAdmin }"
+            >
+              {{ item.tag.name }}
+            </div>
+          </template>
+        </div>
+      </template>
+    </el-table-column>
+    <el-table-column label="跟进员工" width="160">
+      <template #default="props">
+        <template
+          v-if="props.row.owner_pool_list && props.row.owner_pool_list.length"
+        >
+          <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+            <div
+              v-for="(item, idx) in props.row.owner_pool_list"
+              :key="idx"
+              class="p-1 px-2 text-xs rounded-md bg-[#f5f5f5] text-[#303841]"
+            >
+              {{ item.staff_owner.name || item.staff_owner.account }}
+            </div>
+          </div>
+        </template>
+      </template>
+    </el-table-column>
+    <el-table-column prop="company" label="公司" />
     <el-table-column prop="wechat" label="微信" />
     <el-table-column prop="wecom" label="wecom" />
     <el-table-column label="添加时间" sortable>
@@ -458,7 +621,7 @@ onMounted(() => {
         {{ dayjs(props.row.updated_at * 1000).format("YYYY-MM-DD HH:mm") }}
       </template>
     </el-table-column>
-    <el-table-column #default="props" label="操作">
+    <el-table-column #default="props" fixed="right" label="操作">
       <el-button
         v-if="actions.includes('CreateCustomerAction')"
         link
@@ -487,6 +650,12 @@ onMounted(() => {
         @click="handleMulDel(true)"
         >批量恢复</el-button
       >
+      <div
+        class="text-amber-500 hover:text-amber-400 cursor-default ml-2 text-sm"
+        @click="mulNumVisiable = true"
+      >
+        按数量删除
+      </div>
     </div>
     <el-pagination
       v-model:current-page="currentPage"
@@ -530,6 +699,139 @@ onMounted(() => {
         </el-button>
       </div>
     </template>
+  </el-dialog>
+
+  <el-dialog
+    v-model="mulNumVisiable"
+    title="按数量批量删除"
+    width="350"
+    @closed="handleMulNumberCancel"
+  >
+    <div class="flex flex-col">
+      <div class="mb-2">请输入删除前多少条数据:</div>
+      <el-input-number
+        v-model="mulNumber"
+        style="width: 200px"
+        placeholder="请输入"
+      />
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="handleMulNumberCancel">取消</el-button>
+        <el-button type="primary" @click="handleConfrimNumber">
+          确认
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
+
+  <el-dialog
+    v-model="mulNumTableVisiable"
+    title="客户数据"
+    width="700"
+    @closed="handleMulNumberTableCancel"
+  >
+    <el-button
+      class="mb-2"
+      type="primary"
+      :disabled="!selMulNum.length"
+      @click="handleMulTableDel"
+      >确认删除</el-button
+    >
+    <el-table
+      ref="mutilTableref"
+      v-loading="showMulLoading"
+      :data="mulNumTableDataVis"
+      header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
+      style="width: 100%"
+      :height="400"
+      class="flex-1"
+      :row-key="
+        row => {
+          return row.id;
+        }
+      "
+      @selection-change="handleSelectionChangeMul"
+    >
+      <el-table-column type="selection" reserve-selection width="30" />
+      <el-table-column type="expand">
+        <template #default="props">
+          <div
+            class="ml-16 text-zinc-500 text-sm flex flex-col flex-wrap content-start gap-1"
+          >
+            <p>地址：{{ props.row.address }}</p>
+            <p>工作地址：{{ props.row.working_address }}</p>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="客户名称" width="150">
+        <template #default="props">
+          <div class="flex items-center">
+            <el-icon :size="24" class="mr-2" color="#393e46"
+              ><Avatar
+            /></el-icon>
+            {{ props.row.name }}
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="客户标签" width="230">
+        <template #default="props">
+          <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+            <template v-if="props.row.customer_tag_list">
+              <div
+                v-for="item in props.row.customer_tag_list"
+                :key="item.id"
+                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+                :class="{ hidden: item.tag.just_show_for_admin && !isAdmin }"
+              >
+                {{ item.tag.name }}
+              </div>
+            </template>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="跟进员工" width="160">
+        <template #default="props">
+          <template
+            v-if="props.row.owner_pool_list && props.row.owner_pool_list.length"
+          >
+            <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
+              <div
+                v-for="(item, idx) in props.row.owner_pool_list"
+                :key="idx"
+                class="p-1 px-2 text-xs rounded-md bg-[#f5f5f5] text-[#303841]"
+              >
+                {{ item.staff_owner.name || item.staff_owner.account }}
+              </div>
+            </div>
+          </template>
+        </template>
+      </el-table-column>
+      <el-table-column prop="phone" width="140" label="手机" />
+      <el-table-column prop="company" width="180" label="公司" />
+      <el-table-column prop="wechat" label="微信" />
+      <el-table-column prop="wecom" label="企业微信" />
+      <el-table-column prop="qq" label="QQ" />
+      <el-table-column label="创建时间" width="200" sortable>
+        <template #default="props">
+          {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
+        </template>
+      </el-table-column>
+    </el-table>
+    <div class="mt-4">
+      <el-pagination
+        v-if="totalNum"
+        v-model:current-page="currentPageNum"
+        v-model:page-size="pageSizeNum"
+        class="flex-wrap gap-y-2"
+        :page-sizes="[10, 20, 30, 40]"
+        background
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="totalNum"
+        @size-change="handleSizeChangeNum"
+        @current-change="handleCurrentChangeNum"
+      />
+    </div>
   </el-dialog>
 </template>
 

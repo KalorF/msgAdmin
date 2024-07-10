@@ -84,16 +84,16 @@ const genDefaultData = () => {
 
 const msToTime = duration => {
   // const milliseconds = parseInt((duration % 1000) / 100);
-  const seconds = Math.floor((duration / 1000) % 60);
-  const minutes = Math.floor((duration / (1000 * 60)) % 60);
-  const hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+  const seconds = Math.floor(duration % 60);
+  const minutes = Math.floor((duration / 60) % 60);
+  const hours = Math.floor((duration / (60 * 60)) % 24);
 
   let text = "";
   if (hours) {
-    text += hours + " 小时";
+    text += hours + " 小时 ";
   }
   if (minutes) {
-    text += minutes + " 分";
+    text += minutes + " 分 ";
   }
   if (seconds) {
     text += seconds + " 秒";

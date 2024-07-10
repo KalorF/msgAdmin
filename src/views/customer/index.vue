@@ -1569,13 +1569,13 @@ onMounted(() => {
         <el-table-column label="客户标签" width="230">
           <template #default="props">
             <div class="flex items-center flex-wrap gap-2 mb-2 w-full">
-              <el-icon
+              <!-- <el-icon
                 v-if="actions.includes('UpdateCustomerAction')"
                 class="!text-zinc-600 hover:!text-zinc-400"
                 :size="18"
                 @click="handleEditTag(props.row)"
                 ><EditPen
-              /></el-icon>
+              /></el-icon> -->
               <template v-if="props.row.customer_tag_list">
                 <div
                   v-for="item in props.row.customer_tag_list"
