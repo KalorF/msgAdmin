@@ -4,7 +4,8 @@ import {
   poolSet,
   allocSetConfig,
   poolDelStaff,
-  poolDelete
+  poolDelete,
+  allocConfig
 } from "@/api/alloc";
 import { getAllTags, getAllGroupTag } from "@/api/tag";
 import {
@@ -283,10 +284,52 @@ const accountName = ref("");
 const searchData = ref(null);
 
 const ruleVisiable = ref(false);
+const ruleVisiablenew = ref(false);
 const ruleData = ref({
   number_per_time: 0,
   times_per_day: 0
 });
+
+const ruleCancelnew = () => {
+  ruleData.value.number_per_time = 0;
+  ruleData.value.times_per_day = 0;
+  ruleVisiablenew.value = false;
+};
+
+const handleSetRulenew = async () => {
+  try {
+    const res = await getpoolList();
+    if (res && res.data) {
+      ruleData.value.number_per_time =
+        res.data.allocation_config.number_per_time;
+      ruleData.value.times_per_day = res.data.allocation_config.times_per_day;
+    }
+  } catch (error) {}
+
+  ruleVisiablenew.value = true;
+};
+
+const confirmRulenew = () => {
+  if (ruleData.value.number_per_time === 0) {
+    message("请设置每天领取次数");
+    return;
+  } else if (ruleData.value.times_per_day === 0) {
+    message("请设置每次领取次数");
+    return;
+  }
+  allocSetConfig({ ...ruleData.value })
+    .then(res => {
+      if (res.code === 200) {
+        message("配置成功", { type: "success" });
+        ruleCancelnew();
+      } else {
+        message("配置失败", { type: "error" });
+      }
+    })
+    .catch(err => {
+      message(err?.response?.data?.msg || "配置失败", { type: "error" });
+    });
+};
 
 const ruleCancel = () => {
   // ruleData.value.number_per_time = 0;
@@ -440,34 +483,34 @@ const getAllTagsData = () => {
 };
 
 const keyMap = {
-  企业微信: "wecom",
-  公司: "company",
-  地址: "address",
-  客户名称: "name",
-  客户手机: "phone",
-  工作地址: "working_address",
-  微信: "wechat",
-  邮箱: "email",
-  QQ: "qq"
+  // 企业微信: "wecom",
+  // 公司: "company",
+  // 地址: "address",
+  // 客户名称: "name",
+  客户手机: "phone"
+  // 工作地址: "working_address",
+  // 微信: "wechat",
+  // 邮箱: "email",
+  // QQ: "qq"
 };
 
 const exportExcel = async () => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Sheet1");
-  worksheet.getCell("A1").value = "客户名称";
-  worksheet.getCell("B1").value = "客户手机";
-  worksheet.getCell("C1").value = "公司";
-  worksheet.getCell("D1").value = "邮箱";
-  worksheet.getCell("E1").value = "微信";
-  worksheet.getCell("F1").value = "企业微信";
-  worksheet.getCell("G1").value = "QQ";
-  worksheet.getCell("H1").value = "地址";
-  worksheet.getCell("I1").value = "工作地址";
-  // worksheet.getCell("J1").value = "客户标签";
+  // worksheet.getCell("A1").value = "客户名称";
+  worksheet.getCell("A1").value = "客户手机";
+  // worksheet.getCell("C1").value = "公司";
+  // worksheet.getCell("D1").value = "邮箱";
+  // worksheet.getCell("E1").value = "微信";
+  // worksheet.getCell("F1").value = "企业微信";
+  // worksheet.getCell("G1").value = "QQ";
+  // worksheet.getCell("H1").value = "地址";
+  // worksheet.getCell("I1").value = "工作地址";
+  worksheet.getCell("B1").value = "客户标签";
   cloneAllTags.value.forEach((item, index) => {
     if (item.tag_list && item.tag_list.length) {
       worksheet.getCell(
-        String.fromCharCode("I".charCodeAt(0) + index + 1) + "1"
+        String.fromCharCode("A".charCodeAt(0) + index + 1) + "1"
       ).value = item.name;
     }
   });
@@ -477,15 +520,15 @@ const exportExcel = async () => {
   });
 
   worksheet.addRow([
-    "测试客户",
+    // "测试客户",
     18676186777,
-    "深圳市南山区",
-    "867932@qq.com",
-    "weixin",
-    "wecom",
-    "88888",
-    "深圳市南山区",
-    "深圳市南山区",
+    // "深圳市南山区",
+    // "867932@qq.com",
+    // "weixin",
+    // "wecom",
+    // "88888",
+    // "深圳市南山区",
+    // "深圳市南山区",
     ...names
   ]);
 
@@ -503,7 +546,7 @@ const exportExcel = async () => {
       ).values = item.tag_list.map(i => i.name);
     });
 
-    const col = worksheet.getColumn("J");
+    const col = worksheet.getColumn("B");
     col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
       cell.dataValidation = {
         type: "list",
@@ -515,7 +558,7 @@ const exportExcel = async () => {
 
     sliceData.map((item, index) => {
       const col = worksheet.getColumn(
-        String.fromCharCode("J".charCodeAt(0) + index + 1)
+        String.fromCharCode("B".charCodeAt(0) + index + 1)
       );
       col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
         cell.dataValidation = {
@@ -606,17 +649,17 @@ const handleMul = () => {
         let flag = false;
         const keys = Object.values(keyMap);
         // 交集
-        Object.keys(checktExcel).map(key => {
-          if (!keys.includes(key)) {
-            flag = true;
-          }
-        });
-        if (flag) {
-          message("请使用正确的模版文件，下载模版文件并编辑进行导入", {
-            type: "info"
-          });
-          return;
-        }
+        // Object.keys(checktExcel).map(key => {
+        //   if (!keys.includes(key)) {
+        //     flag = true;
+        //   }
+        // });
+        // if (flag) {
+        //   message("请使用正确的模版文件，下载模版文件并编辑进行导入", {
+        //     type: "info"
+        //   });
+        //   return;
+        // }
         const names = cloneAllTags.value.map(item => {
           return item.tag_list && item.tag_list.length && item.name;
         });
@@ -651,7 +694,7 @@ const handleMul = () => {
   input.click();
 };
 
-const isFrocemul = ref(false);
+const isFrocemul = ref(true);
 
 const handleConfirmImport = () => {
   const customers = mulTableData.value.map(item => {
@@ -1249,6 +1292,13 @@ const handleMulTableDel = () => {
           type="default"
           class="w-[100px]"
           @click="handleSetRule"
+          >配置领取员工</el-button
+        >
+        <el-button
+          v-if="actions.includes('CreateAllocationConfig')"
+          type="default"
+          class="w-[100px]"
+          @click="handleSetRulenew"
           >设置领取规则</el-button
         >
       </div>
@@ -1830,6 +1880,37 @@ const handleMulTableDel = () => {
           @current-change="handleCurrentChangeNum"
         />
       </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="ruleVisiablenew"
+      title="配置领取规则"
+      width="400"
+      align-center
+      @closed="ruleCancelnew"
+    >
+      <el-form class="demo-form-inline">
+        <el-form-item label="每次领取个数">
+          <el-input-number
+            v-model="ruleData.number_per_time"
+            :step="1"
+            :min="0"
+          />
+        </el-form-item>
+        <el-form-item label="每天领取次数">
+          <el-input-number
+            v-model="ruleData.times_per_day"
+            :step="1"
+            :min="0"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="ruleCancelnew">取消</el-button>
+          <el-button type="primary" @click="confirmRulenew"> 确认 </el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>
