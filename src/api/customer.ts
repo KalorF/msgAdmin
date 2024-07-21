@@ -163,3 +163,31 @@ export const deleteQueryView = (data: any) => {
 export const batchDelCustomer = (data: any) => {
   return http.request<any>("post", "/api/customer/batch/delete", { data });
 };
+
+export const allocationBatchDelete = (data: any) => {
+  return http.request<any>("post", "/api/customer/allocation/batch/delete", {
+    data
+  });
+};
+
+export const allocationBatchUpdate = (data: any) => {
+  return http.request<any>(
+    "post",
+    "/api/customer/allocation/setting/batch/upsert",
+    {
+      data
+    }
+  );
+};
+
+export const customerGroupList = () => {
+  return http.request<any>("get", "/api/customer/group", {});
+};
+
+export const customerGroupUpsert = (data: any) => {
+  return http.request<any>("post", "/api/customer/group", { data });
+};
+
+export const deleteCusomterGroup = (id: string) => {
+  return http.request<any>("post", `/api/customer/group/${id}`, {});
+};

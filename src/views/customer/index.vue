@@ -18,7 +18,8 @@ import {
   customerQuery,
   customerUpte,
   customerBatchCreate,
-  batchDelCustomer
+  batchDelCustomer,
+  customerGroupList
 } from "@/api/customer";
 import { getAllTags, getAllGroupTag, customerTagUpsert } from "@/api/tag";
 import { getCallListByCustomer } from "@/api/call";
@@ -145,7 +146,10 @@ const getDataNew = () => {
         //   ? (formInline.create_at as any) / 1000
         //   : 0,
         customer_tag_list: checkedItems.value.map(i => ({ tag_id: i.id })),
-        owner_pool_list: checkIds.value.map(i => ({ owner_id: i }))
+        owner_pool_list: checkIds.value.map(i => ({ owner_id: i })),
+        customer_group: customerGroupVal.value
+          ? { id: customerGroupVal.value }
+          : null
       }
     },
     page: {
@@ -1006,12 +1010,24 @@ const handleMulTableDel = () => {
     .catch(() => {});
 };
 
+const customerGroupOptions = ref([]);
+const customerGroupVal = ref("");
+
+const getCustomerGroupList = () => {
+  customerGroupList().then(res => {
+    if (res.code === 200) {
+      customerGroupOptions.value = res.data;
+    }
+  });
+};
+
 onMounted(() => {
   // getData();
   // getTagOptions();
   getDataNew();
   getAllTagsData();
   getOrgStaffData();
+  getCustomerGroupList();
 });
 </script>
 
@@ -1120,6 +1136,21 @@ onMounted(() => {
                 readonly
               />
             </tagPop>
+          </el-form-item>
+          <el-form-item label="客户分组">
+            <el-select
+              v-model="customerGroupVal"
+              placeholder="请选择"
+              clearable
+              style="width: 200px"
+            >
+              <el-option
+                v-for="item in customerGroupOptions"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="跟进员工">
             <el-popover

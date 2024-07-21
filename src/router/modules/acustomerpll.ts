@@ -1,8 +1,8 @@
 export default {
-  path: '/customerpool',
+  path: "/customerpool",
   meta: {
-    icon: 'fluent-mdl2:manager-self-service',
-    title: '客户池'
+    icon: "fluent-mdl2:manager-self-service",
+    title: "客户池"
   },
-  component: () => import("@/views/pool/index.vue"),
-}
+  component: () => import("@/views/pool/index.vue")
+};

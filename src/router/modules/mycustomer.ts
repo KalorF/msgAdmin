@@ -1,8 +1,8 @@
 export default {
-  path: '/mycustomer',
+  path: "/mycustomer",
   meta: {
-    icon: 'clarity:users-line',
-    title: '我的客户'
+    icon: "clarity:users-line",
+    title: "我的客户"
   },
-  component: () => import("@/views/mycustomer/index.vue"),
-}
+  component: () => import("@/views/mycustomer/index.vue")
+};

@@ -18,6 +18,7 @@ import {
   getpoolList,
   poolSetStaff
 } from "@/api/alloc";
+import { customerGroupList, customerGroupUpsert } from "@/api/customer";
 import { ref, reactive, onMounted, watch, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
@@ -42,6 +43,7 @@ const currentPage = ref(1);
 const total = ref(0);
 const pool = ref([]);
 const allStaffList = ref([]);
+const allStaffListwithGroup = ref([]);
 
 const permission = usePermissionActionStroe();
 const actions = computed(() => permission.value);
@@ -317,20 +319,48 @@ const handleAlloc = async (item: any) => {
   } else {
     poolSelect.value = "";
   }
+  const findStaff = allStaffListwithGroup.value.find(
+    i => i.staff_id === item.id
+  );
+  if (findStaff) {
+    customerGroupSelectVal.value = findStaff.customer_group_id;
+  } else {
+    customerGroupSelectVal.value = "";
+  }
   currentStaff.value = item;
   poolVisible.value = true;
 };
 
 const handlePool = () => {
   // const edit = isPoolEdit.value;
-  poolSetStaff({
-    staff_id_str_list: [currentStaff.value.id],
-    allocation_pool_id: poolSelect.value
-  })
+  let customerGroupData = {};
+  if (activeValue.value) {
+    let groupData = customerGroupOptions.value.find(
+      i => i.id === customerGroupSelectVal.value
+    );
+    if (!groupData.allocation_setting_list) {
+      groupData.allocation_setting_list = [];
+    }
+    groupData.allocation_setting_list.push({
+      customer_group_id: customerGroupSelectVal.value,
+      staff_id: currentStaff.value.id,
+      staff: currentStaff.value
+    });
+    customerGroupData = groupData;
+  }
+  const data = activeValue.value
+    ? customerGroupData
+    : {
+        staff_id_str_list: [currentStaff.value.id],
+        allocation_pool_id: poolSelect.value
+      };
+  const func = activeValue.value ? customerGroupUpsert : poolSetStaff;
+  func(data)
     .then(res => {
       if (res.code == 200) {
         ElMessage.success("操作成功");
         getpoolList();
+        getCustomerGroupList();
         cancelPool();
       } else {
         ElMessage.error("操作失败");
@@ -342,8 +372,24 @@ const handlePool = () => {
     });
 };
 
+const customerGroupOptions = ref([]);
+
+const getCustomerGroupList = () => {
+  customerGroupList().then(res => {
+    if (res.code === 200) {
+      customerGroupOptions.value = res.data || [];
+      const list = [];
+      res.data.map((item: any) => {
+        list.push(...item.allocation_setting_list);
+      });
+      allStaffListwithGroup.value = list;
+    }
+  });
+};
+
 onMounted(async () => {
   getpoolListPost();
+  getCustomerGroupList();
   await orgGet().then(res => {
     myorg.value = res.data;
   });
@@ -427,6 +473,9 @@ const handleViewExam = (item: any) => {
   currentInfo.value = item;
   showExamDialog.value = true;
 };
+
+const activeValue = ref(1);
+const customerGroupSelectVal = ref("");
 
 const showBar = ref(false);
 </script>
@@ -756,8 +805,17 @@ const showBar = ref(false);
       align-center
       @closed="cancelPool"
     >
+      <!-- <el-radio-group
+        v-model="activeValue"
+        size="small"
+        fill="#ff9a00"
+        class="mb-4"
+      >
+        <el-radio-button label="按客户分组" :value="1" />
+        <el-radio-button label="按客户池" :value="0" />
+      </el-radio-group> -->
       <el-form class="demo-form-inline">
-        <el-form-item label="客户池">
+        <el-form-item v-if="!activeValue" label="客户池">
           <el-select
             v-model="poolSelect"
             placeholder="请选择"
@@ -771,12 +829,26 @@ const showBar = ref(false);
             />
           </el-select>
         </el-form-item>
+        <el-form-item v-if="activeValue" label="客户分组">
+          <el-select
+            v-model="customerGroupSelectVal"
+            placeholder="请选择"
+            style="width: 240px"
+          >
+            <el-option
+              v-for="item in customerGroupOptions"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="cancelPool">取消</el-button>
           <el-button type="primary" @click="handlePool">
-            {{ isPoolEdit ? "确认修改" : "确认创建" }}
+            {{ isPoolEdit ? "确认修改" : "确认分配" }}
           </el-button>
         </div>
       </template>

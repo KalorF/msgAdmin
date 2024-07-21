@@ -249,6 +249,7 @@ const selOrg = item => {
   total.value = 0;
   currentInfo.value = item;
   activeOrg.value = item.id;
+  handleViewCustomer();
 };
 
 const dialogSearch = ref(false);
@@ -328,6 +329,7 @@ onMounted(async () => {
     if (accountList.value.length) {
       accountList.value = accountList.value.map(item => item.staff);
     }
+    handleViewCustomer();
   }
   getTagOptions();
 });
@@ -340,17 +342,19 @@ watch(activeOrg, () => {
   }
 });
 
+const accountListShow = ref(false);
+
 const customerList = ref([]);
 const customerTotal = ref(0);
 const customerCurrentPage = ref(1);
-const customerVisiable = ref(false);
+// const customerVisiable = ref(false);
 
 const handleViewCustomer = () => {
   customerTotal.value = 0;
   customerCurrentPage.value = 1;
   customerList.value = [];
   getCustomerData();
-  customerVisiable.value = true;
+  // customerVisiable.value = true;
 };
 
 const getCustomerData = () => {
@@ -365,7 +369,7 @@ const getCustomerData = () => {
       }
     },
     page: {
-      limit: 5,
+      limit: 10,
       offset: customerCurrentPage.value - 1
     }
   }).then(res => {
@@ -385,7 +389,9 @@ const showBar = ref(false);
 </script>
 
 <template>
-  <div class="p-4 py-1 bg-white rounded-lg flex h-[calc(100%-30px)] w-full">
+  <div
+    class="p-4 py-1 bg-white rounded-lg flex h-[calc(100%-30px)] w-full content-start"
+  >
     <div
       class="w-[260px] h-full border-r border-r-slate-100 flex flex-col gap-2 pr-2 max-phone:hidden"
     >
@@ -502,17 +508,17 @@ const showBar = ref(false);
       class="phone:hidden absolute max-phone:ml-[-25px] top-3.5"
       @toggleClick="showBar = true"
     />
-    <div class="w-full px-2 flex flex-col">
+    <div class="w-[calc(100%-260px)] px-2 flex flex-col max-phone:w-full">
       <div class="flex items-center">
         <span class="border-l-[#ff922b] border-l-4 text-sm pl-1 rounded"
-          >客户池员工</span
+          >客户</span
         >
 
         <el-button
           type="default"
           class="w-[100px] ml-auto"
-          @click="handleViewCustomer"
-          >客户池客户</el-button
+          @click="accountListShow = true"
+          >客户池员工</el-button
         >
         <el-button
           v-if="actions.includes('CreateAllocationConfig')"
@@ -523,53 +529,68 @@ const showBar = ref(false);
         >
       </div>
       <el-table
+        :data="customerList"
         header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
-        :data="accountList"
         style="width: 100%"
-        class="flex-1 mt-2"
-        @selection-change="handleSelectionChange"
+        class="mt-2 flex-1"
       >
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="account" label="账号" />
-        <el-table-column prop="name" label="姓名" />
-        <el-table-column prop="phone" label="手机" />
-        <el-table-column prop="email" label="邮箱" />
-        <el-table-column label="创建时间">
-          <template #default="scope">
-            {{ dayjs(+scope.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
+        <el-table-column type="expand">
+          <template #default="props">
+            <div
+              class="ml-16 text-zinc-500 text-sm flex flex-col flex-wrap content-start gap-1"
+            >
+              <p>地址：{{ props.row.address }}</p>
+              <p>工作地址：{{ props.row.working_address }}</p>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作">
-          <template #default="scope">
-            <el-button
-              v-if="actions.includes('CreateCustomerAction')"
-              link
-              type="danger"
-              @click="handleDelFromPool(scope.row)"
-            >
-              移除</el-button
-            >
+        <el-table-column label="客户名称" width="230">
+          <template #default="props">
+            <div class="flex items-center">
+              <el-icon :size="24" class="mr-2" color="#393e46"
+                ><Avatar
+              /></el-icon>
+              {{ props.row.name }}
+            </div>
           </template>
         </el-table-column>
+        <el-table-column label="客户标签" width="230">
+          <template #default="props">
+            <div
+              v-if="props.row.customer_tag_list"
+              class="flex items-center flex-wrap gap-2 mb-2 w-full"
+            >
+              <div
+                v-for="item in props.row.customer_tag_list"
+                :key="item.id"
+                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
+              >
+                {{ item.tag.name }}
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="phone" width="140" label="手机" />
+        <el-table-column label="添加时间" width="200">
+          <template #default="props">
+            {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="company" width="180" label="公司" />
+        <el-table-column prop="wechat" label="微信" />
+        <el-table-column prop="wecom" label="企业微信" />
+        <el-table-column prop="qq" label="QQ" />
       </el-table>
-      <div class="mt-2 flex justify-between">
-        <el-button
-          v-if="actions.includes('CreateCustomerAction')"
-          type="primary"
-          :disabled="!selMulIds.length"
-          @click="hanldeMulDel"
-          >批量删除</el-button
-        >
+      <div class="mt-1 justify-end flex">
         <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          class="flex-wrap gap-y-2"
-          :page-sizes="[10, 20, 30, 40]"
+          v-if="customerTotal"
+          v-model:current-page="customerCurrentPage"
+          class="flex-wrap gap-y-2 mt-4"
+          :default-page-size="5"
           background
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
+          layout="total, prev, pager, next, jumper"
+          :total="customerTotal"
+          @current-change="handleChangeCustomerPage"
         />
       </div>
     </div>
@@ -669,74 +690,61 @@ const showBar = ref(false);
     </el-dialog>
 
     <el-dialog
-      v-model="customerVisiable"
-      title="客户池客户"
+      v-model="accountListShow"
+      title="该客户池员工"
       width="800"
       align-center
     >
       <el-table
-        :data="customerList"
         header-cell-class-name="!bg-[#f5f5f5] text-zinc-600"
+        :data="accountList"
         style="width: 100%"
-        class="flex-1"
+        class="flex-1 mt-2"
+        @selection-change="handleSelectionChange"
       >
-        <el-table-column type="expand">
-          <template #default="props">
-            <div
-              class="ml-16 text-zinc-500 text-sm flex flex-col flex-wrap content-start gap-1"
+        <el-table-column type="selection" width="55" />
+        <el-table-column prop="account" label="账号" />
+        <el-table-column prop="name" label="姓名" />
+        <el-table-column prop="phone" label="手机" />
+        <el-table-column prop="email" label="邮箱" />
+        <el-table-column label="创建时间">
+          <template #default="scope">
+            {{ dayjs(+scope.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作">
+          <template #default="scope">
+            <el-button
+              v-if="actions.includes('CreateCustomerAction')"
+              link
+              type="danger"
+              @click="handleDelFromPool(scope.row)"
             >
-              <p>地址：{{ props.row.address }}</p>
-              <p>工作地址：{{ props.row.working_address }}</p>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="客户名称" width="150">
-          <template #default="props">
-            <div class="flex items-center">
-              <el-icon :size="24" class="mr-2" color="#393e46"
-                ><Avatar
-              /></el-icon>
-              {{ props.row.name }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="客户标签" width="230">
-          <template #default="props">
-            <div
-              v-if="props.row.customer_tag_list"
-              class="flex items-center flex-wrap gap-2 mb-2 w-full"
+              移除</el-button
             >
-              <div
-                v-for="item in props.row.customer_tag_list"
-                :key="item.id"
-                class="p-1 px-2 text-xs rounded-md bg-[#eeeeee] text-[#303841]"
-              >
-                {{ item.tag.name }}
-              </div>
-            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="phone" width="140" label="手机" />
-        <el-table-column label="添加时间" width="200">
-          <template #default="props">
-            {{ dayjs(props.row.created_at * 1000).format("YYYY-MM-DD HH:mm") }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="company" width="180" label="公司" />
-        <el-table-column prop="wechat" label="微信" />
-        <el-table-column prop="wecom" label="企业微信" />
-        <el-table-column prop="qq" label="QQ" />
       </el-table>
-      <el-pagination
-        v-if="customerTotal"
-        v-model:current-page="customerCurrentPage"
-        class="flex-wrap gap-y-2 mt-4"
-        :default-page-size="5"
-        background
-        layout="total, prev, pager, next, jumper"
-        :total="customerTotal"
-        @current-change="handleChangeCustomerPage"
-      />
+      <div class="mt-2 flex justify-between">
+        <el-button
+          v-if="actions.includes('CreateCustomerAction')"
+          type="primary"
+          :disabled="!selMulIds.length"
+          @click="hanldeMulDel"
+          >批量删除</el-button
+        >
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          class="flex-wrap gap-y-2"
+          :page-sizes="[10, 20, 30, 40]"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </el-dialog>
   </div>
 </template>
