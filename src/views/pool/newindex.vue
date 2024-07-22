@@ -483,15 +483,15 @@ const getAllTagsData = () => {
 };
 
 const keyMap = {
-  // 企业微信: "wecom",
-  // 公司: "company",
-  // 地址: "address",
-  // 客户名称: "name",
-  客户手机: "phone"
-  // 工作地址: "working_address",
-  // 微信: "wechat",
-  // 邮箱: "email",
-  // QQ: "qq"
+  企业微信: "wecom",
+  公司: "company",
+  地址: "address",
+  客户名称: "name",
+  客户手机: "phone",
+  工作地址: "working_address",
+  微信: "wechat",
+  邮箱: "email",
+  QQ: "qq"
 };
 
 const exportExcel = async () => {
@@ -649,17 +649,19 @@ const handleMul = () => {
         let flag = false;
         const keys = Object.values(keyMap);
         // 交集
-        // Object.keys(checktExcel).map(key => {
-        //   if (!keys.includes(key)) {
-        //     flag = true;
-        //   }
-        // });
-        // if (flag) {
-        //   message("请使用正确的模版文件，下载模版文件并编辑进行导入", {
-        //     type: "info"
-        //   });
-        //   return;
-        // }
+        keys.some(key => {
+          const checkKey = Object.keys(checktExcel).includes(key);
+          if (checkKey) {
+            flag = true;
+            return true;
+          }
+        });
+        if (!flag) {
+          message("请使用正确的模版文件，下载模版文件并编辑进行导入", {
+            type: "info"
+          });
+          return;
+        }
         const names = cloneAllTags.value.map(item => {
           return item.tag_list && item.tag_list.length && item.name;
         });
@@ -1138,6 +1140,12 @@ const handleMulTableDel = () => {
     })
     .catch(() => {});
 };
+
+const customerTitle = computed(() => {
+  return (
+    orgList.value.find(item => item.id === activeOrg.value)?.name || "客户"
+  );
+});
 </script>
 
 <template>
@@ -1262,19 +1270,20 @@ const handleMulTableDel = () => {
     />
     <div class="w-[calc(100%-220px)] px-2 flex flex-col max-phone:w-full">
       <div class="flex items-center">
-        <span class="border-l-[#ff922b] border-l-4 text-sm pl-1 rounded"
-          >客户</span
-        >
+        <span class="border-l-[#ff922b] border-l-4 text-sm pl-1 rounded">{{
+          customerTitle
+        }}</span>
 
         <el-button
-          v-if="actions.includes('CreateCustomerAction')"
-          class="ml-2"
+          v-if="actions.includes('CreateCustomerAction') && currentInfo"
+          class="ml-3"
           type="default"
           size="small"
           @click="handleMul"
           >批量导入</el-button
         >
         <div
+          v-if="currentInfo"
           class="ml-2 text-sm text-sky-500 underline hover:text-cyan-700 cursor-default"
           @click="exportExcel"
         >
@@ -1282,20 +1291,21 @@ const handleMulTableDel = () => {
         </div>
 
         <el-button
+          v-if="currentInfo"
           type="default"
           class="w-[100px] ml-auto"
           @click="accountListShow = true"
-          >客户分组员工</el-button
+          >该分组员工</el-button
         >
-        <el-button
+        <!-- <el-button
           v-if="actions.includes('CreateAllocationConfig')"
           type="default"
           class="w-[100px]"
           @click="handleSetRule"
           >配置领取员工</el-button
-        >
+        > -->
         <el-button
-          v-if="actions.includes('CreateAllocationConfig')"
+          v-if="actions.includes('CreateAllocationConfig') && currentInfo"
           type="default"
           class="w-[100px]"
           @click="handleSetRulenew"
@@ -1557,7 +1567,7 @@ const handleMulTableDel = () => {
 
     <el-dialog
       v-model="accountListShow"
-      title="该客户分组员工"
+      :title="`该客户分组员工 --- ${customerTitle}`"
       width="800"
       align-center
     >
@@ -1664,7 +1674,7 @@ const handleMulTableDel = () => {
             :total="mulTotal"
             @current-change="handleCurrentChangeMul"
           />
-          <el-checkbox v-model="isFrocemul" class="!mr-2">是否覆盖</el-checkbox>
+          <!-- <el-checkbox v-model="isFrocemul" class="!mr-2">是否覆盖</el-checkbox> -->
           <el-button @click="handleMulCancel">取消</el-button>
           <el-button type="primary" @click="handleConfirmImport">
             确认导入

@@ -587,12 +587,14 @@ const handleMul = () => {
         let flag = false;
         const keys = Object.values(keyMap);
         // 交集
-        Object.keys(checktExcel).map(key => {
-          if (!keys.includes(key)) {
+        keys.some(key => {
+          const checkKey = Object.keys(checktExcel).includes(key);
+          if (checkKey) {
             flag = true;
+            return true;
           }
         });
-        if (flag) {
+        if (!flag) {
           message("请使用正确的模版文件，下载模版文件并编辑进行导入", {
             type: "info"
           });

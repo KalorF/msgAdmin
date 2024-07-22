@@ -18,7 +18,11 @@ import {
   getpoolList,
   poolSetStaff
 } from "@/api/alloc";
-import { customerGroupList, customerGroupUpsert } from "@/api/customer";
+import {
+  customerGroupList,
+  customerGroupUpsert,
+  allocationBatchUpdate
+} from "@/api/customer";
 import { ref, reactive, onMounted, watch, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
 import dayjs from "dayjs";
@@ -333,28 +337,35 @@ const handleAlloc = async (item: any) => {
 
 const handlePool = () => {
   // const edit = isPoolEdit.value;
-  let customerGroupData = {};
-  if (activeValue.value) {
-    let groupData = customerGroupOptions.value.find(
-      i => i.id === customerGroupSelectVal.value
-    );
-    if (!groupData.allocation_setting_list) {
-      groupData.allocation_setting_list = [];
-    }
-    groupData.allocation_setting_list.push({
-      customer_group_id: customerGroupSelectVal.value,
-      staff_id: currentStaff.value.id,
-      staff: currentStaff.value
-    });
-    customerGroupData = groupData;
-  }
+  // let customerGroupData = {};
+  // if (activeValue.value) {
+  //   let groupData = customerGroupOptions.value.find(
+  //     i => i.id === customerGroupSelectVal.value
+  //   );
+  //   if (!groupData.allocation_setting_list) {
+  //     groupData.allocation_setting_list = [];
+  //   }
+  //   groupData.allocation_setting_list.push({
+  //     customer_group_id: customerGroupSelectVal.value,
+  //     staff_id: currentStaff.value.id,
+  //     staff: currentStaff.value
+  //   });
+  //   customerGroupData = groupData;
+  // }
   const data = activeValue.value
-    ? customerGroupData
+    ? {
+        settings: [
+          {
+            customer_group_id: customerGroupSelectVal.value,
+            staff_id: currentStaff.value.id
+          }
+        ]
+      }
     : {
         staff_id_str_list: [currentStaff.value.id],
         allocation_pool_id: poolSelect.value
       };
-  const func = activeValue.value ? customerGroupUpsert : poolSetStaff;
+  const func = activeValue.value ? allocationBatchUpdate : poolSetStaff;
   func(data)
     .then(res => {
       if (res.code == 200) {
