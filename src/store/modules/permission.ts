@@ -11,7 +11,7 @@ const resourceMap = {
   SimpleBI: ["/"],
   AccountManager: ["/account"],
   CustomerTagManager: ["/tag"],
-  CustomerActionManager: ["/customer", "/customerpool", "/customergroup"],
+  CustomerActionManager: ["/customer", "/customergroup"],
   SimpleCustomer: ["/mycustomer", "/mycustomercall"],
   OrganizationManager: ["/org"],
   BankManager: ["/bank"],
@@ -22,10 +22,10 @@ const resourceMap = {
   ResourceExamManager: ["/exammanger"]
 };
 
-const otherMap = {
-  exam: ["/exammanger"],
-  myexam: ["/myexam"]
-};
+// const otherMap = {
+//   exam: ["/exammanger"],
+//   myexam: ["/myexam"]
+// };
 
 export const usePermissionStore = defineStore({
   id: "pure-permission",

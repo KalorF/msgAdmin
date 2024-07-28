@@ -1432,7 +1432,9 @@ const customerTitle = computed(() => {
             type="primary"
             :disabled="!selectList.length"
             @click="handleMulDel"
-            >批量删除</el-button
+            >批量删除<span v-if="selectList.length"
+              >（已选择{{ selectList.length }}条）</span
+            ></el-button
           >
           <div
             class="text-amber-500 hover:text-amber-400 cursor-default ml-2 text-sm"
@@ -1785,7 +1787,9 @@ const customerTitle = computed(() => {
         type="primary"
         :disabled="!selMulNum.length"
         @click="handleMulTableDel"
-        >确认删除</el-button
+        >确认删除<span v-if="selMulNum.length"
+          >(已选择 {{ selMulNum.length }} 条)</span
+        ></el-button
       >
       <el-table
         ref="mutilTableref"
